@@ -16,6 +16,7 @@ public class AiConfig {
     private static final double TEMPERATURE = 0.7;
 
     private volatile ChatClient currentChatClient;
+    private volatile boolean realKeyConfigured = false;
 
     @Bean
     public ChatClient chatClient(ChatClient.Builder builder) {
@@ -24,7 +25,14 @@ public class AiConfig {
     }
 
     public ChatClient getCurrentChatClient() {
+        if (!realKeyConfigured) {
+            throw new IllegalStateException("请先在设置页面配置 API Key");
+        }
         return currentChatClient;
+    }
+
+    public boolean isConfigured() {
+        return realKeyConfigured;
     }
 
     public synchronized void refreshApiKey(String newApiKey) {
@@ -43,5 +51,6 @@ public class AiConfig {
                 .build();
 
         this.currentChatClient = ChatClient.builder(model).build();
+        this.realKeyConfigured = true;
     }
 }

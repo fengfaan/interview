@@ -29,9 +29,9 @@ public class SettingsService {
 
     @PostConstruct
     void init() {
-        String savedKey = readKeyFromFile();
-        if (savedKey != null && !savedKey.isBlank()) {
-            aiConfig.refreshApiKey(savedKey);
+        String realKey = getCurrentApiKey();
+        if (realKey != null) {
+            aiConfig.refreshApiKey(realKey);
             log.info("Loaded API key from settings file");
         }
     }
