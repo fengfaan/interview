@@ -7,13 +7,26 @@ import { loadState, saveState } from '../utils/localStorage'
 const STORAGE_KEY = 'ai-career-prep.mock-interview'
 
 function extractFollowUpQuestion(commentary: string): string {
-  const match = commentary.match(/##\s*深度追问\s*\n([\s\S]+)/)
-  if (!match) return ''
-  const section = match[1].trim()
-  const boldMatch = section.match(/\*\*(.+?)\*\*/)
-  if (boldMatch) return boldMatch[1].replace(/^问题[：:]\s*/, '')
+  const patterns = [
+    /#{2,3}\s*深度追问[\s]*\n([\s\S]+)/,
+    /深度追问[：:]\s*\n([\s\S]+)/,
+    /追问问题[：:]\s*\n([\s\S]+)/,
+  ]
+  let section = ''
+  for (const p of patterns) {
+    const m = commentary.match(p)
+    if (m) { section = m[1].trim(); break }
+  }
+  if (!section) return ''
+
+  const boldMatch = section.match(/\*\*(.+?)\*\*/m)
+  if (boldMatch) return boldMatch[1].replace(/^问题[：:]\s*/, '').replace(/\*$/, '')
+
+  const questionMatch = section.match(/^(?:问题[：:])?\s*(.+)/m)
+  if (questionMatch) return questionMatch[1].replace(/\*$/, '').trim()
+
   const lines = section.split('\n').filter(l => l.trim())
-  if (lines.length > 0) return lines[0].replace(/^[-*]\s*/, '').trim()
+  if (lines.length > 0) return lines[0].replace(/^[-*]\s*/, '').replace(/\*$/, '').trim()
   return ''
 }
 
@@ -184,20 +197,24 @@ export const useInterviewStore = defineStore('interview', () => {
     await generateQuestion()
   }
 
-  function continueChallenge() {
-    if (!followUpQuestion.value) return
-    currentQuestion.value = {
-      questionId: 'q_followup',
-      question: followUpQuestion.value,
-      expectedKeywords: [],
-    }
+  async function continueChallenge() {
     draftAnswer.value = ''
     feedbackExpanded.value = false
     keywordHits.value = null
     score.value = null
     commentary.value = ''
-    followUpQuestion.value = ''
-    persist()
+
+    if (followUpQuestion.value) {
+      currentQuestion.value = {
+        questionId: 'q_followup',
+        question: followUpQuestion.value,
+        expectedKeywords: [],
+      }
+      followUpQuestion.value = ''
+      persist()
+    } else {
+      await generateQuestion()
+    }
   }
 
   function newSession() {
