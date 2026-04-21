@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn spring-boot:run -Dspring-boot.run.arguments=\"--logging.level.org.springframework.ai=DEBUG\")",
+      "Read(//usr/local/**)",
+      "Read(//opt/**)",
+      "Bash(brew list *)",
+      "Bash(brew --prefix maven)",
+      "WebSearch",
+      "mcp__zread__search_doc",
+      "mcp__zread__read_file",
+      "mcp__zread__get_repo_structure",
+      "Read(//private/tmp/**)",
+      "Bash(jar xf *)",
+      "Read(//tmp/org/springframework/ai/openai/api/**)",
+      "Bash(jar tf *)",
+      "Bash(find /tmp/org -name \"*OpenAi*\")",
+      "Bash(javap -p -c /Users/fengfan/.m2/repository/org/springframework/ai/spring-ai-autoconfigure-model-openai/1.1.1/spring-ai-autoconfigure-model-openai-1.1.1.jar)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(p['name'], '-', p.get\\('description',''\\)\\) for p in data.get\\('properties',[]\\)]\")",
+      "Bash(python3 -c ' *)",
+      "Bash(javap -c org/springframework/ai/model/openai/autoconfigure/OpenAIAutoConfigurationUtil.class)",
+      "Bash(javap -c /tmp/org/springframework/ai/model/openai/autoconfigure/OpenAIAutoConfigurationUtil.class)",
+      "Bash(javap -constants /tmp/org/springframework/ai/openai/api/OpenAiApi.class)",
+      "Bash(javap -constants org/springframework/ai/openai/api/OpenAiApi.class)",
+      "Bash(javap -public org/springframework/ai/openai/OpenAiChatModel.class)",
+      "Bash(javap -public org/springframework/ai/openai/api/OpenAiApi.class)"
+    ]
+  }
+}

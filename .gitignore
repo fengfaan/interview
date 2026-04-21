@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+backend/target/
+backend/META-INF/
+backend/org/
+frontend/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local

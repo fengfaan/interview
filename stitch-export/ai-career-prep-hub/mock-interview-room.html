@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mock Interview Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#fcf8f9",
+                        "on-secondary-fixed": "#002113",
+                        "on-primary-fixed": "#001a42",
+                        "surface-variant": "#e5e2e3",
+                        "secondary-fixed-dim": "#4edea3",
+                        "primary": "#0058be",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#d8e2ff",
+                        "on-background": "#1b1b1c",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#924700",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-primary-container": "#fefcff",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#6ffbbe",
+                        "primary-container": "#2170e4",
+                        "on-secondary-container": "#00714d",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#fffbff",
+                        "surface-dim": "#dcd9da",
+                        "inverse-on-surface": "#f3f0f1",
+                        "on-secondary-fixed-variant": "#005236",
+                        "inverse-primary": "#adc6ff",
+                        "secondary-container": "#6cf8bb",
+                        "tertiary-container": "#b75b00",
+                        "surface-container-highest": "#e5e2e3",
+                        "inverse-surface": "#303031",
+                        "on-primary-fixed-variant": "#004395",
+                        "on-tertiary-fixed-variant": "#723600",
+                        "background": "#fcf8f9",
+                        "outline-variant": "#c2c6d6",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#f0edee",
+                        "on-surface": "#1b1b1c",
+                        "surface": "#fcf8f9",
+                        "on-surface-variant": "#424754",
+                        "tertiary-fixed-dim": "#ffb786",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-error-container": "#93000a",
+                        "secondary": "#006c49",
+                        "surface-container-low": "#f6f3f4",
+                        "outline": "#727785",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#eae7e8",
+                        "on-tertiary-fixed": "#311400",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-tint": "#005ac2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-gradient-primary {
+            background-image: linear-gradient(135deg, #0058be 0%, #2170e4 100%);
+        }
+        .glass-panel {
+            background-color: rgba(216, 226, 255, 0.4); /* primary-fixed semi-transparent */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface flex min-h-screen">
+<!-- SideNavBar (from JSON) -->
+<nav class="fixed left-0 top-0 h-screen w-64 z-40 bg-[#303031] dark:bg-black shadow-2xl shadow-black/20 flex flex-col justify-between p-6 no-border">
+<div>
+<!-- Header -->
+<div class="mb-10 flex items-center gap-3">
+<img alt="Executive User Profile" class="w-10 h-10 rounded-full object-cover" data-alt="professional headshot of an executive in a dark modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlnJFSJu8-hpGXziy0T7AZT7lc7OIUHWgn_vS8qK1UKNbr1Bv1VRrTOrADUP0fMeyBMtmkmqDA4ADWXyNNRCrIzj5CABp2QlN6JgGRjAOqGxrUbFbY8pR8TnIXJJxf7Ec6aEH4g2d4cAmBALlPIa0DTLFGb6fXtnq9zUuKgn2YDHmnL9H9BTBb9PpdN-mr8NLpcTeCkd-lsTcf0_xQb04JCGXKkLDgN4Uj-wXt1TrXyiV-m0S6iLQrh-qnTwi8ZnZAqptaLCJnZATV"/>
+<div>
+<h1 class="text-lg font-black text-white tracking-tighter uppercase font-headline">Precision Path</h1>
+<p class="text-neutral-400 text-xs font-label">AI Career Curator</p>
+</div>
+</div>
+<!-- CTA -->
+<button class="w-full mb-8 bg-gradient-primary text-white font-label font-medium rounded-lg py-3 px-4 shadow-lg hover:shadow-xl transition-shadow scale-98 active:scale-95 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                New Simulation
+            </button>
+<!-- Navigation Tabs -->
+<ul class="space-y-2 font-['Manrope'] text-sm tracking-wide">
+<li>
+<!-- Active State -->
+<a class="flex items-center gap-3 bg-white/10 text-white font-bold rounded-lg px-4 py-3 scale-98 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">settings_voice</span>
+                        Mock Interview
+                    </a>
+</li>
+<li>
+<!-- Inactive State -->
+<a class="flex items-center gap-3 text-neutral-400 hover:text-white px-4 py-3 hover:bg-white/5 transition-all duration-300 rounded-lg" href="#">
+<span class="material-symbols-outlined">description</span>
+                        Resume Optimizer
+                    </a>
+</li>
+</ul>
+</div>
+<!-- Footer Tabs -->
+<ul class="space-y-2 font-['Manrope'] text-sm tracking-wide border-t border-white/10 pt-4">
+<li>
+<a class="flex items-center gap-3 text-neutral-400 hover:text-white px-4 py-3 hover:bg-white/5 transition-all duration-300 rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-neutral-400 hover:text-white px-4 py-3 hover:bg-white/5 transition-all duration-300 rounded-lg" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+                    Support
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-64 flex flex-col relative min-h-screen">
+<!-- TopAppBar (from JSON) -->
+<header class="fixed top-0 right-0 left-64 h-20 z-30 bg-[#FCF8F9]/80 dark:bg-[#303031]/80 backdrop-blur-xl border-b border-neutral-200/20 flex justify-between items-center px-10">
+<div class="flex items-center gap-8">
+<h2 class="text-xl font-extrabold text-[#303031] dark:text-white font-headline">Workspace</h2>
+<!-- Filters Section (Scene Specific) -->
+<div class="flex items-center gap-4 bg-surface-container-low px-4 py-2 rounded-xl">
+<div class="flex items-center gap-2 text-sm font-label text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">explore</span>
+<span>Direction:</span>
+<select class="bg-transparent border-none text-on-surface font-medium focus:ring-0 p-0 text-sm cursor-pointer outline-none">
+<option>Go</option>
+<option>React</option>
+</select>
+</div>
+<div class="w-px h-4 bg-outline-variant/30"></div>
+<div class="flex items-center gap-2 text-sm font-label text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">layers</span>
+<span>Depth:</span>
+<select class="bg-transparent border-none text-on-surface font-medium focus:ring-0 p-0 text-sm cursor-pointer outline-none">
+<option>System Design</option>
+<option>Foundations</option>
+</select>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<!-- Navigation Links from JSON -->
+<nav class="hidden md:flex gap-6 font-['Manrope'] font-medium text-neutral-800 dark:text-white text-sm">
+<a class="text-[#3B82F6] border-b-2 border-[#3B82F6] pb-1 hover:opacity-80 transition-opacity" href="#">Dashboard</a>
+<a class="text-neutral-500 hover:text-neutral-800 dark:hover:text-white hover:opacity-80 transition-opacity" href="#">Analytics</a>
+<a class="text-neutral-500 hover:text-neutral-800 dark:hover:text-white hover:opacity-80 transition-opacity" href="#">History</a>
+</nav>
+<div class="w-px h-6 bg-outline-variant/30 hidden md:block"></div>
+<button class="bg-primary-container text-on-primary-container text-sm font-label font-medium px-5 py-2 rounded-lg hover:bg-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                    Start Simulation
+                </button>
+<div class="flex items-center gap-4 text-[#3B82F6] dark:text-blue-400">
+<button class="hover:opacity-80 transition-opacity"><span class="material-symbols-outlined">notifications_none</span></button>
+<button class="hover:opacity-80 transition-opacity"><span class="material-symbols-outlined">account_circle</span></button>
+</div>
+</div>
+</header>
+<!-- Main Workspace Area -->
+<main class="flex-1 mt-20 p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Left Column: Interview Interaction (8 cols) -->
+<div class="lg:col-span-8 flex flex-col gap-8">
+<!-- Question Card -->
+<div class="bg-surface-container-lowest p-8 rounded-xl relative shadow-[0_12px_32px_-4px_rgba(27,27,28,0.06)] overflow-hidden">
+<div class="absolute top-0 left-0 w-2 h-full bg-primary"></div>
+<div class="flex items-center gap-3 mb-4 text-primary font-label text-sm font-medium">
+<span class="material-symbols-outlined bg-primary-fixed p-1.5 rounded-md text-primary">record_voice_over</span>
+                        Question 1 of 5
+                    </div>
+<h2 class="text-3xl font-headline font-bold text-on-surface leading-tight tracking-tight mb-4">
+                        Explain the GMP model in Go and how M finds G.
+                    </h2>
+<p class="text-on-surface-variant font-body text-base max-w-3xl leading-relaxed">
+                        Detail the responsibilities of Goroutines, Machine threads, and Processors. specifically focus on the work-stealing algorithm and local vs global run queues.
+                    </p>
+</div>
+<!-- Answer Area -->
+<div class="bg-surface-container-low rounded-xl p-2 relative">
+<textarea class="w-full h-64 bg-surface-container-highest border-none rounded-lg p-6 font-body text-on-surface placeholder-on-surface-variant/50 focus:ring-0 resize-none text-lg" placeholder="Type your answer here or click the microphone to dictate..."></textarea>
+<div class="absolute bottom-6 right-6 flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 bg-surface-container-lowest rounded-full shadow-sm">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+<button class="bg-gradient-primary text-white font-label font-medium rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+                            Submit Answer
+                            <span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right Column: AI Feedback Panel (4 cols) -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- AI Feedback "Glass" Component -->
+<div class="glass-panel p-6 rounded-xl relative border border-white/20">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline font-bold text-lg text-on-primary-fixed flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">auto_awesome</span>
+                            Real-time Analysis
+                        </h3>
+<span class="text-xs font-label bg-surface-container-lowest px-2 py-1 rounded text-on-surface-variant">Processing...</span>
+</div>
+<!-- Keyword Radar -->
+<div class="mb-8">
+<h4 class="text-sm font-label font-medium text-on-surface-variant mb-3 uppercase tracking-wider">Keyword Radar</h4>
+<div class="flex flex-wrap gap-2">
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1.5 rounded-md text-sm font-body flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                Work Stealing
+                            </div>
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1.5 rounded-md text-sm font-body flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                Local Queue
+                            </div>
+<div class="bg-error-container text-on-error-container px-3 py-1.5 rounded-md text-sm font-body flex items-center gap-1.5 border border-error/20">
+<span class="material-symbols-outlined text-[16px]">error</span>
+                                Hand-off (Missing)
+                            </div>
+<div class="bg-error-container text-on-error-container px-3 py-1.5 rounded-md text-sm font-body flex items-center gap-1.5 border border-error/20">
+<span class="material-symbols-outlined text-[16px]">error</span>
+                                Global Queue (Missing)
+                            </div>
+</div>
+</div>
+<!-- AI Professional Script -->
+<div>
+<h4 class="text-sm font-label font-medium text-on-surface-variant mb-3 uppercase tracking-wider">Suggested Framework</h4>
+<div class="bg-surface-container-lowest/80 p-4 rounded-lg border border-white/40 font-body text-sm text-on-surface leading-relaxed relative">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container rounded-l-lg"></div>
+<p class="opacity-80">
+                                "In the Go runtime, the GMP model orchestrates concurrency. <strong class="text-primary font-semibold">G</strong> represents a Goroutine, <strong class="text-primary font-semibold">M</strong> is an OS thread, and <strong class="text-primary font-semibold">P</strong> is a logical Processor..."
+                            </p>
+<div class="mt-2 text-xs text-primary font-medium flex items-center gap-1 cursor-pointer">
+                                Read full suggestion <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Follow-up Section -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/15 mt-2">
+<h4 class="font-headline font-bold text-on-surface mb-2">Ready for a curveball?</h4>
+<p class="font-body text-sm text-on-surface-variant mb-4">The interviewer might ask about blocking system calls next.</p>
+<button class="w-full bg-surface-container-highest hover:bg-surface-variant text-on-surface font-label font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">psychology</span>
+                        Continue Challenge
+                    </button>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Precision Path - Resume Optimizer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#fcf8f9",
+                        "on-secondary-fixed": "#002113",
+                        "on-primary-fixed": "#001a42",
+                        "surface-variant": "#e5e2e3",
+                        "secondary-fixed-dim": "#4edea3",
+                        "primary": "#0058be",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#d8e2ff",
+                        "on-background": "#1b1b1c",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#924700",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-primary-container": "#fefcff",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#6ffbbe",
+                        "primary-container": "#2170e4",
+                        "on-secondary-container": "#00714d",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#fffbff",
+                        "surface-dim": "#dcd9da",
+                        "inverse-on-surface": "#f3f0f1",
+                        "on-secondary-fixed-variant": "#005236",
+                        "inverse-primary": "#adc6ff",
+                        "secondary-container": "#6cf8bb",
+                        "tertiary-container": "#b75b00",
+                        "surface-container-highest": "#e5e2e3",
+                        "inverse-surface": "#303031",
+                        "on-primary-fixed-variant": "#004395",
+                        "on-tertiary-fixed-variant": "#723600",
+                        "background": "#fcf8f9",
+                        "outline-variant": "#c2c6d6",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#f0edee",
+                        "on-surface": "#1b1b1c",
+                        "surface": "#fcf8f9",
+                        "on-surface-variant": "#424754",
+                        "tertiary-fixed-dim": "#ffb786",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-error-container": "#93000a",
+                        "secondary": "#006c49",
+                        "surface-container-low": "#f6f3f4",
+                        "outline": "#727785",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#eae7e8",
+                        "on-tertiary-fixed": "#311400",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-tint": "#005ac2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for inner areas */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #dcd9da; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c2c6d6; }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased overflow-hidden">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-64 z-40 bg-inverse-surface text-inverse-on-surface flex flex-col justify-between h-full p-6 shadow-2xl shadow-black/20">
+<div>
+<!-- Header Brand -->
+<div class="mb-10">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-on-primary">insights</span>
+</div>
+<div>
+<h1 class="text-lg font-black text-white tracking-tighter uppercase font-headline">Precision Path</h1>
+<p class="text-xs text-inverse-on-surface/60 font-medium tracking-widest uppercase">AI Career Curator</p>
+</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="space-y-2 flex flex-col font-['Manrope'] text-sm tracking-wide">
+<a class="text-neutral-400 hover:text-white px-4 py-3 hover:bg-white/5 transition-all duration-300 rounded-lg flex items-center gap-3 group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">settings_voice</span>
+                    Mock Interview
+                </a>
+<a class="bg-white/10 text-white font-bold rounded-lg px-4 py-3 flex items-center gap-3" href="#">
+<span class="material-symbols-outlined fill-icon text-inverse-primary">description</span>
+                    Resume Optimizer
+                </a>
+</nav>
+</div>
+<!-- CTA & Footer -->
+<div class="space-y-6">
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-xl py-3 font-semibold text-sm shadow-[0_12px_32px_-4px_rgba(0,88,190,0.4)] hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                New Simulation
+            </button>
+<div class="border-t border-white/10 pt-4 flex flex-col gap-2 font-['Manrope'] text-sm tracking-wide">
+<a class="text-neutral-400 hover:text-white px-4 py-2 hover:bg-white/5 transition-all duration-300 rounded-lg flex items-center gap-3" href="#">
+<span class="material-symbols-outlined text-lg">settings</span> Settings
+                </a>
+<a class="text-neutral-400 hover:text-white px-4 py-2 hover:bg-white/5 transition-all duration-300 rounded-lg flex items-center gap-3" href="#">
+<span class="material-symbols-outlined text-lg">help_outline</span> Support
+                </a>
+</div>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-64 h-20 z-30 bg-surface-bright/80 backdrop-blur-xl border-b border-outline-variant/20 flex justify-between items-center px-10 w-full transition-all">
+<div class="flex items-center gap-8">
+<h2 class="text-xl font-extrabold text-on-surface font-headline tracking-tight">Workspace</h2>
+<nav class="hidden md:flex gap-6 font-['Manrope'] font-medium text-on-surface-variant">
+<a class="text-neutral-500 hover:text-neutral-800 hover:opacity-80 transition-opacity" href="#">Dashboard</a>
+<a class="text-neutral-500 hover:text-neutral-800 hover:opacity-80 transition-opacity" href="#">Analytics</a>
+<a class="text-neutral-500 hover:text-neutral-800 hover:opacity-80 transition-opacity" href="#">History</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<!-- Search placed on left contextually if needed, but keeping trailing icons here per JSON layout intent -->
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications_none</span>
+</button>
+<div class="h-9 w-9 rounded-full bg-surface-container-high overflow-hidden shadow-sm">
+<img alt="Executive User" class="w-full h-full object-cover" data-alt="professional headshot of an executive in a tailored suit against a neutral studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQ-YxfwXMboKB6_nehMu0QtgKuoIeuz8fRsCPGVVVi6QCtJiNr9W0A-DyzFrA_-Xnk25NyvDEXGF6PqjXm-cdUT7phSYkwkC9803QOxo89cyPsJ69o4JSneTrJbCJTqKaSOBkGxuTHA8V7Fr_Hw9DMyLX0-zX13IX8x3JqHvNsN4er0ckgePIm1t4UerKWrX26eHKx6_C4MlGUBB1QHegBSt_dWxYfifHyHBFeky7FZ4mItG5E0RMpgK98APKtmcDhv1squGGSYC3R"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-20 h-screen bg-surface-container overflow-y-auto">
+<div class="max-w-7xl mx-auto p-8 flex flex-col gap-8 h-full">
+<!-- Top Banner: Upload Zones -->
+<section class="flex-shrink-0 flex gap-6 items-stretch">
+<div class="flex-1 bg-surface-container-highest rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-variant transition-colors group relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<span class="material-symbols-outlined text-4xl text-on-surface-variant mb-3 group-hover:text-primary transition-colors">upload_file</span>
+<h3 class="font-headline font-semibold text-on-surface mb-1">Upload Resume</h3>
+<p class="text-xs text-on-surface-variant/70">PDF, DOCX, or paste text</p>
+</div>
+<div class="flex flex-col justify-center items-center px-4">
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full px-8 py-4 font-headline font-bold text-lg shadow-[0_12px_32px_-4px_rgba(0,88,190,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
+<span class="material-symbols-outlined">auto_fix_high</span>
+                        Generate Report
+                    </button>
+</div>
+<div class="flex-1 bg-surface-container-highest rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-variant transition-colors group relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<span class="material-symbols-outlined text-4xl text-on-surface-variant mb-3 group-hover:text-secondary transition-colors">assignment</span>
+<h3 class="font-headline font-semibold text-on-surface mb-1">Target JD</h3>
+<p class="text-xs text-on-surface-variant/70">Paste job description here</p>
+</div>
+</section>
+<!-- Split Screen Diff View -->
+<section class="flex-1 flex gap-8 min-h-0">
+<!-- Left: Original Resume -->
+<div class="flex-1 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="bg-surface-container-low px-6 py-4 flex justify-between items-center z-10">
+<h3 class="font-headline font-bold text-on-surface text-lg">Original Resume</h3>
+<span class="text-xs font-medium bg-surface-variant text-on-surface-variant px-3 py-1 rounded-full">Viewing Draft_v2.pdf</span>
+</div>
+<div class="p-8 overflow-y-auto font-body text-sm text-on-surface leading-relaxed space-y-6">
+<div class="border-b border-outline-variant/30 pb-4">
+<h2 class="text-xl font-bold font-headline mb-1">ALEXANDER WRIGHT</h2>
+<p class="text-on-surface-variant">San Francisco, CA | alex.wright@email.com | (555) 123-4567</p>
+</div>
+<div>
+<h4 class="font-bold text-primary mb-2 uppercase tracking-wider text-xs">Experience</h4>
+<div class="mb-4">
+<div class="flex justify-between items-baseline mb-1">
+<h5 class="font-semibold text-base">Senior Software Engineer</h5>
+<span class="text-on-surface-variant text-xs">2020 - Present</span>
+</div>
+<p class="text-on-surface-variant mb-2">TechFlow Solutions</p>
+<ul class="list-disc pl-5 space-y-2 text-on-surface-variant">
+<li>Led a team of 5 developers to build a scalable microservices architecture using <span class="bg-secondary-container/40 text-on-secondary-container px-1 rounded font-medium">Node.js</span> and <span class="bg-secondary-container/40 text-on-secondary-container px-1 rounded font-medium">AWS</span>.</li>
+<li class="underline decoration-wavy decoration-error decoration-2 underline-offset-4 text-on-surface font-medium cursor-help" title="Weak action verb, lacks metrics">Assisted with project management tasks and attended weekly syncs.</li>
+<li>Improved database query performance by 40% through index optimization.</li>
+<li class="underline decoration-wavy decoration-error decoration-2 underline-offset-4 text-on-surface font-medium cursor-help" title="Vague statement, needs STAR format">Responsible for fixing bugs in the legacy application.</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: AI Optimization Panel -->
+<div class="flex-1 overflow-y-auto pr-2 space-y-6">
+<!-- Score & Red Flags Row -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Score Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm flex items-center gap-6">
+<div class="relative w-20 h-20 flex-shrink-0">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-variant stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-primary stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="65, 100" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center flex-col">
+<span class="text-xl font-bold font-headline text-on-surface">65%</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-bold text-on-surface text-lg">Matching Score</h3>
+<p class="text-sm text-on-surface-variant mt-1">Moderate alignment with Target JD.</p>
+</div>
+</div>
+<!-- Red Flags List -->
+<div class="bg-error-container/40 rounded-xl p-5 shadow-sm flex flex-col justify-center">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-on-error-container fill-icon">warning</span>
+<h4 class="font-headline font-bold text-on-error-container">Red Flags</h4>
+</div>
+<ul class="text-sm text-on-error-container/80 space-y-1 font-medium list-inside list-disc">
+<li>Missing "Kubernetes" keyword</li>
+<li>2 bullet points lack quantifiable metrics</li>
+</ul>
+</div>
+</div>
+<!-- AI Header -->
+<div class="flex items-center gap-3 py-2">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<h3 class="font-headline font-bold text-lg text-on-surface">AI Optimization Suggestions</h3>
+</div>
+<!-- STAR Reconstruction Cards (Glassmorphism) -->
+<div class="space-y-4">
+<!-- Card 1 -->
+<div class="bg-primary-fixed/20 backdrop-blur-xl rounded-xl p-6 shadow-[0_8px_32px_-8px_rgba(0,88,190,0.1)] relative border border-primary/10">
+<div class="absolute top-4 right-4 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase">High Impact</div>
+<h4 class="font-headline font-semibold text-on-primary-fixed mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-base">edit_note</span>
+                                Reconstruct Bullet Point
+                            </h4>
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 mb-4 text-sm text-on-surface-variant border border-outline-variant/20 line-through decoration-error/50">
+                                "Assisted with project management tasks and attended weekly syncs."
+                            </div>
+<div class="bg-surface-container-lowest rounded-lg p-4 text-sm text-on-surface shadow-sm">
+<p class="mb-2 font-medium text-primary">STAR Framework Suggestion:</p>
+<p class="leading-loose">
+                                    Spearheaded project coordination for <span class="bg-surface-variant text-on-surface px-2 py-1 rounded font-mono mx-1 shadow-inner inline-block min-w-[80px] text-center text-xs">[Team/Project]</span>, facilitating cross-functional syncs that reduced delivery time by <span class="bg-surface-variant text-on-surface px-2 py-1 rounded font-mono mx-1 shadow-inner inline-block min-w-[60px] text-center text-xs">[XX]%</span>.
+                                </p>
+</div>
+<div class="mt-4 flex justify-end gap-2">
+<button class="text-sm font-medium text-on-surface-variant hover:bg-surface-variant px-4 py-2 rounded-lg transition-colors">Dismiss</button>
+<button class="text-sm font-semibold bg-primary text-on-primary px-4 py-2 rounded-lg shadow-sm hover:bg-primary-container transition-colors">Apply Fix</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-primary-fixed/20 backdrop-blur-xl rounded-xl p-6 shadow-[0_8px_32px_-8px_rgba(0,88,190,0.1)] relative border border-primary/10">
+<h4 class="font-headline font-semibold text-on-primary-fixed mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-base">edit_note</span>
+                                Quantify Achievement
+                            </h4>
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 mb-4 text-sm text-on-surface-variant border border-outline-variant/20 line-through decoration-error/50">
+                                "Responsible for fixing bugs in the legacy application."
+                            </div>
+<div class="bg-surface-container-lowest rounded-lg p-4 text-sm text-on-surface shadow-sm">
+<p class="mb-2 font-medium text-primary">STAR Framework Suggestion:</p>
+<p class="leading-loose">
+                                    Resolved <span class="bg-surface-variant text-on-surface px-2 py-1 rounded font-mono mx-1 shadow-inner inline-block min-w-[60px] text-center text-xs">[Number]</span>+ critical bugs within the legacy application, improving system uptime to <span class="bg-surface-variant text-on-surface px-2 py-1 rounded font-mono mx-1 shadow-inner inline-block min-w-[60px] text-center text-xs">[99.X]%</span> and enhancing overall user experience.
+                                </p>
+</div>
+<div class="mt-4 flex justify-end gap-2">
+<button class="text-sm font-medium text-on-surface-variant hover:bg-surface-variant px-4 py-2 rounded-lg transition-colors">Dismiss</button>
+<button class="text-sm font-semibold bg-primary text-on-primary px-4 py-2 rounded-lg shadow-sm hover:bg-primary-container transition-colors">Apply Fix</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</body></html>

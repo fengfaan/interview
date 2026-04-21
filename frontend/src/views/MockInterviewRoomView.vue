@@ -1,0 +1,228 @@
+<template>
+  <div class="min-h-screen flex flex-col">
+    <!-- Top Config Bar -->
+    <header class="sticky top-0 z-10 bg-surface-container-low/80 backdrop-blur-xl border-b border-outline-variant/20 px-8 py-4">
+      <div class="flex items-center gap-6 flex-wrap">
+        <h2 class="text-xl font-extrabold text-on-surface font-headline">面试演练室</h2>
+
+        <div class="flex items-center gap-4 bg-surface-container-lowest px-4 py-2 rounded-xl">
+          <div class="flex items-center gap-2 text-sm font-label text-on-surface-variant">
+            <span class="material-symbols-outlined text-base">explore</span>
+            <span>方向:</span>
+            <select
+              v-model="store.direction"
+              :disabled="store.isStarted"
+              class="bg-transparent border-none text-on-surface font-medium text-sm focus:ring-0 p-0 outline-none cursor-pointer"
+            >
+              <option v-for="d in DIRECTIONS" :key="d.value" :value="d.value">{{ d.label }}</option>
+            </select>
+          </div>
+
+          <div class="w-px h-4 bg-outline-variant/30"></div>
+
+          <div class="flex items-center gap-2 text-sm font-label text-on-surface-variant">
+            <span class="material-symbols-outlined text-base">layers</span>
+            <span>强度:</span>
+          </div>
+          <div class="flex gap-1">
+            <button
+              v-for="l in LEVELS" :key="l.value"
+              @click="store.level = l.value"
+              :disabled="store.isStarted"
+              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+              :class="store.level === l.value
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'"
+            >{{ l.label }}</button>
+          </div>
+        </div>
+
+        <button
+          v-if="!store.isStarted"
+          @click="store.startSession()"
+          :disabled="store.isLoading"
+          class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-label font-medium rounded-xl px-6 py-2.5 shadow-md hover:opacity-90 transition-opacity flex items-center gap-2"
+        >
+          <span class="material-symbols-outlined text-base">play_arrow</span>
+          {{ store.isLoading ? '生成中...' : '开始模拟' }}
+        </button>
+
+        <button
+          v-else
+          @click="store.newSession()"
+          class="bg-surface-container-high text-on-surface font-label font-medium rounded-xl px-4 py-2 hover:bg-surface-container-highest transition-colors"
+        >
+          结束模拟
+        </button>
+      </div>
+    </header>
+
+    <!-- Error Banner -->
+    <div v-if="store.error" class="mx-8 mt-4 bg-error-container text-on-error-container px-4 py-3 rounded-xl flex items-center gap-2">
+      <span class="material-symbols-outlined text-base">error</span>
+      <span class="text-sm">{{ store.error }}</span>
+      <button @click="store.error = ''" class="ml-auto text-xs underline">关闭</button>
+    </div>
+
+    <!-- Middle: Q&A Area -->
+    <div v-if="store.isStarted && store.currentQuestion" class="flex-1 p-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Question Card -->
+        <div class="bg-surface-container-lowest p-8 rounded-xl relative shadow-sm">
+          <div class="absolute top-0 left-0 w-2 h-full bg-primary rounded-l-xl"></div>
+          <div class="flex items-center gap-3 mb-4 text-primary font-label text-sm font-medium">
+            <span class="material-symbols-outlined bg-primary-fixed p-1.5 rounded-md text-primary text-base">record_voice_over</span>
+            第 {{ store.history.length + 1 }} 题
+          </div>
+          <h3 class="text-2xl font-headline font-bold text-on-surface leading-tight mb-3">
+            {{ store.currentQuestion.question }}
+          </h3>
+          <div v-if="store.currentQuestion.expectedKeywords.length" class="flex flex-wrap gap-2 mt-4">
+            <span class="text-xs font-label text-on-surface-variant">考察要点:</span>
+            <span
+              v-for="kw in store.currentQuestion.expectedKeywords" :key="kw"
+              class="bg-primary-fixed/50 text-on-primary-fixed px-2 py-0.5 rounded text-xs"
+            >{{ kw }}</span>
+          </div>
+        </div>
+
+        <!-- Answer Editor -->
+        <div class="bg-surface-container-low rounded-xl p-2 relative flex flex-col">
+          <textarea
+            v-model="store.draftAnswer"
+            :disabled="store.isStreaming"
+            class="w-full flex-1 min-h-[200px] bg-surface-container-highest border-none rounded-lg p-6 font-body text-on-surface placeholder-on-surface-variant/50 focus:ring-0 resize-none text-base"
+            placeholder="在这里输入你的回答..."
+            @keydown="handleKeydown"
+          ></textarea>
+          <div class="flex items-center justify-between px-4 py-3">
+            <span class="text-xs text-on-surface-variant">{{ store.draftAnswer.length }} / 5000</span>
+            <div class="flex items-center gap-3">
+              <button
+                @click="store.skipQuestion()"
+                :disabled="store.isLoading || store.isStreaming"
+                class="text-sm text-on-surface-variant hover:text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-highest transition-colors"
+              >
+                跳过此题
+              </button>
+              <button
+                @click="store.submitAnswer()"
+                :disabled="store.isLoading || store.isStreaming || !store.draftAnswer.trim()"
+                class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-label font-medium rounded-lg px-6 py-2.5 shadow-md hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+              >
+                提交回答
+                <span class="material-symbols-outlined text-sm">send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="!store.isStarted" class="flex-1 flex items-center justify-center">
+      <div class="text-center text-on-surface-variant">
+        <span class="material-symbols-outlined text-6xl mb-4 block">psychology</span>
+        <p class="text-lg font-headline font-bold">选择方向和强度，开始模拟面试</p>
+        <p class="text-sm mt-2">AI 将扮演资深面试官，为你生成真实面试题目</p>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="store.isLoading && !store.currentQuestion" class="flex-1 flex items-center justify-center">
+      <div class="flex items-center gap-3 text-primary">
+        <span class="material-symbols-outlined animate-spin">progress_activity</span>
+        <span class="font-label">正在生成题目...</span>
+      </div>
+    </div>
+
+    <!-- Bottom Feedback Drawer -->
+    <div
+      v-if="store.feedbackExpanded"
+      class="border-t border-outline-variant/20 bg-surface-container-low"
+    >
+      <div class="px-8 py-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="font-headline font-bold text-lg text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">auto_awesome</span>
+            实时反馈
+          </h3>
+          <div v-if="store.isStreaming" class="flex items-center gap-2 text-xs font-label text-primary">
+            <span class="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+            生成中...
+          </div>
+          <button @click="store.feedbackExpanded = false" class="text-on-surface-variant hover:text-on-surface">
+            <span class="material-symbols-outlined text-sm">expand_more</span>
+          </button>
+        </div>
+
+        <!-- Keyword Radar -->
+        <div v-if="store.keywordHits" class="mb-6">
+          <h4 class="text-sm font-label font-medium text-on-surface-variant mb-3 uppercase tracking-wider">关键词命中</h4>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="kw in store.keywordHits.hit" :key="'hit-'+kw"
+              class="bg-secondary-container/60 text-on-secondary-container px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-sm">check_circle</span>
+              {{ kw }}
+            </span>
+            <span
+              v-for="kw in store.keywordHits.miss" :key="'miss-'+kw"
+              class="bg-error-container text-on-error-container px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-sm">error</span>
+              {{ kw }}
+            </span>
+          </div>
+          <div v-if="store.score !== null" class="mt-3 text-sm text-on-surface-variant">
+            得分: <span class="font-bold text-primary">{{ store.score }}</span>/100
+          </div>
+        </div>
+
+        <!-- Streaming Commentary -->
+        <div v-if="store.commentary" class="mb-6">
+          <div class="prose prose-sm max-w-none text-on-surface bg-surface-container-lowest p-6 rounded-xl" v-html="renderedCommentary"></div>
+        </div>
+
+        <!-- Follow-up Question -->
+        <div v-if="!store.isStreaming && store.commentary" class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/15">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="font-headline font-bold text-on-surface mb-1">继续挑战？</h4>
+              <p class="text-sm text-on-surface-variant">点击进入下一道进阶问题</p>
+            </div>
+            <button
+              @click="store.continueChallenge()"
+              class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-base">psychology</span>
+              继续挑战
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { marked } from 'marked'
+import { useInterviewStore } from '../stores/interviewStore'
+import { DIRECTIONS, LEVELS } from '../types/interview'
+
+const store = useInterviewStore()
+
+const renderedCommentary = computed(() => {
+  if (!store.commentary) return ''
+  return marked(store.commentary) as string
+})
+
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault()
+    store.submitAnswer()
+  }
+}
+</script>

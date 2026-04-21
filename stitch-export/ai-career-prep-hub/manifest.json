@@ -1,0 +1,55 @@
+{
+  "project": {
+    "title": "AI Career Prep Hub",
+    "id": "14471870673985272686"
+  },
+  "exportedAt": "2026-04-21",
+  "screens": [
+    {
+      "title": "Design System",
+      "requestedId": "asset-stub-assets-8fb27216ae9a4876aeb7a8942db8ac7d-1776736485140",
+      "assetId": "assets/8fb27216ae9a4876aeb7a8942db8ac7d",
+      "files": {
+        "designSystemMarkdown": "design-system.md",
+        "designSystemJson": "design-system.json"
+      },
+      "hostedUrls": {
+        "htmlCode": null,
+        "screenshot": null
+      },
+      "note": "This item is exposed by Stitch as a design-system asset instance, not as a normal downloadable screen."
+    },
+    {
+      "title": "Mock Interview Room",
+      "id": "a00a8b3e177540e986e31092d3cbcf5a",
+      "dimensions": {
+        "width": 2560,
+        "height": 2048
+      },
+      "files": {
+        "htmlCode": "mock-interview-room.html",
+        "screenshot": "mock-interview-room.png"
+      },
+      "hostedUrls": {
+        "htmlCode": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sX2Q4OTg1ZmVlMWQ3YjRiYTA4NzZlNjM5ZWZiNWM4N2Y5EgsSBxDpsYHQ0xkYAZIBJAoKcHJvamVjdF9pZBIWQhQxNDQ3MTg3MDY3Mzk4NTI3MjY4Ng&filename=&opi=89354086",
+        "screenshot": "https://lh3.googleusercontent.com/aida/ADBb0ujRh2yTha67ychu5cS0AffykcMrneSBLBREuTQhQXMWyb9q9VHI5JHsRAJJ_HwcShL_He9zImghO4GYbBCPKwyHv-gijmKd6pYyh7kMbTByFvKn42xxuVyUySpJWgeAXt3XBdmTeKuCbRM6B_6eHPfaLBaqmCzpvByer-DoF1ePik1P3eegiwrg2ODtSwCpVtVS3-BaHPd9Bi2JQIHlOA5kZtrV-7sjLBCZt3OsbtfUUXWVuAiJpIFatDA"
+      }
+    },
+    {
+      "title": "Resume Optimizer",
+      "id": "77b7e25847284501a0c8be900dcc0374",
+      "dimensions": {
+        "width": 3072,
+        "height": 2048
+      },
+      "files": {
+        "htmlCode": "resume-optimizer.html",
+        "screenshot": "resume-optimizer.png"
+      },
+      "hostedUrls": {
+        "htmlCode": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzU3NTZkNjk3ZDc1ZjRhMjBhNTIwMGZlMTY0YjllNGRkEgsSBxDpsYHQ0xkYAZIBJAoKcHJvamVjdF9pZBIWQhQxNDQ3MTg3MDY3Mzk4NTI3MjY4Ng&filename=&opi=89354086",
+        "screenshot": "https://lh3.googleusercontent.com/aida/ADBb0uiWb6CracNfP1CEWwyeXsC2lQr1UTuR_lnhVSMQzDU92Kk7FQYf0KtOIYD9cBwdpzf45YFXX83XQnQ34Zw-Wj-ADG1XyNlxeEak7Di-jRiAK6EiuBXgYxbwW98zati5Xey-VTsfsfARLhmjHmYAg4vWh3ulJPxB9FxspMC867omCOGe6RdXxpmFF2NI1_ZT8oNT-_CWt3_uiIqJ7hbemra3Q-BLdNCa9Ef2PohNFTMWRDWmAT69hlTUWpQ"
+      }
+    }
+  ]
+}
