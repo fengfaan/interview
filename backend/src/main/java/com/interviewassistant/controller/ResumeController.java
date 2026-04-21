@@ -2,6 +2,7 @@ package com.interviewassistant.controller;
 
 import com.interviewassistant.common.ApiResponse;
 import com.interviewassistant.common.SseUtils;
+import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.dto.resume.AnalyzeRequest;
 import com.interviewassistant.dto.resume.AnalyzeResponse;
 import com.interviewassistant.dto.resume.RewriteStreamRequest;
@@ -10,7 +11,6 @@ import com.interviewassistant.service.ResumeAiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 public class ResumeController {
 
     private final ResumeAiService resumeService;
-    private final ChatClient chatClient;
+    private final AiConfig aiConfig;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @PostMapping("/analyze")
@@ -45,7 +45,7 @@ public class ResumeController {
 
         executor.execute(() -> {
             try {
-                chatClient.prompt()
+                aiConfig.getCurrentChatClient().prompt()
                         .system(ResumePrompts.SYSTEM_PROMPT)
                         .user(prompt)
                         .stream()

@@ -1,10 +1,10 @@
 package com.interviewassistant.service;
 
+import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.dto.interview.*;
 import com.interviewassistant.prompt.InterviewPrompts;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InterviewAiService {
 
-    private final ChatClient chatClient;
+    private final AiConfig aiConfig;
     private final AtomicInteger questionCounter = new AtomicInteger(1);
 
     public QuestionResponse generateQuestion(String direction, String level, List<HistoryEntry> history) {
@@ -32,7 +32,7 @@ public class InterviewAiService {
                 historySummary);
 
         var converter = new BeanOutputConverter<>(QuestionResponse.class);
-        String response = chatClient.prompt()
+        String response = aiConfig.getCurrentChatClient().prompt()
                 .system(InterviewPrompts.SYSTEM_PROMPT)
                 .user(userMessage + "\n\n" + converter.getFormat())
                 .call()
@@ -53,7 +53,7 @@ public class InterviewAiService {
                 question, answer, expectedKeywords);
 
         var converter = new BeanOutputConverter<>(FeedbackResponse.class);
-        String response = chatClient.prompt()
+        String response = aiConfig.getCurrentChatClient().prompt()
                 .system(InterviewPrompts.SYSTEM_PROMPT)
                 .user(userMessage + "\n\n" + converter.getFormat())
                 .call()

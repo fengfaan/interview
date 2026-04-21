@@ -22,6 +22,11 @@ const router = createRouter({
           name: 'resume',
           component: () => import('../views/ResumeOptimizerView.vue'),
         },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('../views/SettingsView.vue'),
+        },
       ],
     },
   ],

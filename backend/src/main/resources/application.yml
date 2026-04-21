@@ -4,7 +4,7 @@ server:
 spring:
   ai:
     openai:
-      api-key: ${ZHIPU_API_KEY}
+      api-key: ${ZHIPU_API_KEY:not-configured}
       base-url: https://open.bigmodel.cn
       chat:
         completions-path: /api/paas/v4/chat/completions

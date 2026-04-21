@@ -44,12 +44,13 @@
     </div>
 
     <div class="border-t border-white/10 pt-4 space-y-2 font-headline text-sm">
-      <a class="flex items-center gap-3 text-neutral-400 px-4 py-2 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer">
+      <RouterLink
+        to="/settings"
+        class="flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300"
+        :class="isActive('/settings') ? 'bg-white/10 text-white font-bold' : 'text-neutral-400 hover:text-white hover:bg-white/5'"
+      >
         <span class="material-symbols-outlined text-lg">settings</span> 设置
-      </a>
-      <a class="flex items-center gap-3 text-neutral-400 px-4 py-2 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer">
-        <span class="material-symbols-outlined text-lg">help_outline</span> 支持
-      </a>
+      </RouterLink>
     </div>
   </nav>
 </template>

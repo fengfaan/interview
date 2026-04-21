@@ -2,6 +2,7 @@ package com.interviewassistant.controller;
 
 import com.interviewassistant.common.ApiResponse;
 import com.interviewassistant.common.SseUtils;
+import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.dto.interview.*;
 import com.interviewassistant.service.InterviewAiService;
 import jakarta.validation.Valid;
@@ -22,7 +23,7 @@ import java.util.concurrent.Executors;
 public class InterviewController {
 
     private final InterviewAiService interviewService;
-    private final org.springframework.ai.chat.client.ChatClient chatClient;
+    private final AiConfig aiConfig;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @PostMapping("/question")
@@ -58,7 +59,7 @@ public class InterviewController {
 
         executor.execute(() -> {
             try {
-                chatClient.prompt()
+                aiConfig.getCurrentChatClient().prompt()
                         .system(InterviewPrompts.SYSTEM_PROMPT)
                         .user(prompt)
                         .stream()
