@@ -6,6 +6,8 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestClient;
 
 @Configuration
 public class AiConfig {
@@ -36,10 +38,14 @@ public class AiConfig {
     }
 
     public synchronized void refreshApiKey(String newApiKey) {
+        RestClient.Builder restClientBuilder = RestClient.builder()
+                .requestFactory(new HttpComponentsClientHttpRequestFactory());
+
         OpenAiApi api = OpenAiApi.builder()
                 .apiKey(newApiKey)
                 .baseUrl(BASE_URL)
                 .completionsPath(COMPLETIONS_PATH)
+                .restClientBuilder(restClientBuilder)
                 .build();
 
         OpenAiChatModel model = OpenAiChatModel.builder()
