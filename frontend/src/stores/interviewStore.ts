@@ -198,6 +198,15 @@ export const useInterviewStore = defineStore('interview', () => {
   }
 
   async function continueChallenge() {
+    if (currentQuestion.value) {
+      history.value.push({
+        questionId: currentQuestion.value.questionId,
+        question: currentQuestion.value.question,
+        answer: draftAnswer.value || null,
+        skipped: !draftAnswer.value.trim(),
+      })
+      if (history.value.length > 10) history.value = history.value.slice(-10)
+    }
     draftAnswer.value = ''
     feedbackExpanded.value = false
     keywordHits.value = null
