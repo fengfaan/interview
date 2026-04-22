@@ -1,4 +1,10 @@
-import type { QuestionRequest, QuestionResponse, FeedbackRequest, FeedbackResponse } from '../types/interview'
+import type {
+  QuestionRequest,
+  QuestionResponse,
+  FeedbackRequest,
+  FeedbackResponse,
+  RecommendedAnswerRequest,
+} from '../types/interview'
 import { streamPost } from './streamClient'
 
 const API_BASE = '/api/interview'
@@ -31,4 +37,12 @@ export function streamFeedback(
   onError?: (error: string) => void,
 ): Promise<void> {
   return streamPost('/interview/feedback/stream', request, onChunk, onError)
+}
+
+export function streamRecommendedAnswer(
+  request: RecommendedAnswerRequest,
+  onChunk: (text: string) => void,
+  onError?: (error: string) => void,
+): Promise<void> {
+  return streamPost('/interview/recommended-answer/stream', request, onChunk, onError)
 }

@@ -25,6 +25,13 @@ export interface FeedbackRequest {
   expectedKeywords: string[]
 }
 
+export interface RecommendedAnswerRequest {
+  direction: string
+  level: string
+  question: string
+  expectedKeywords: string[]
+}
+
 export interface KeywordHits {
   hit: string[]
   miss: string[]

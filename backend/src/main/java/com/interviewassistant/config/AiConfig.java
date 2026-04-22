@@ -14,11 +14,12 @@ public class AiConfig {
 
     private static final String BASE_URL = "https://open.bigmodel.cn";
     private static final String COMPLETIONS_PATH = "/api/paas/v4/chat/completions";
-    private static final String MODEL = "glm-4-flash";
+    public static final String DEFAULT_MODEL = "glm-4-flash";
     private static final double TEMPERATURE = 0.7;
 
     private volatile ChatClient currentChatClient;
     private volatile boolean realKeyConfigured = false;
+    private volatile String currentModel = DEFAULT_MODEL;
 
     @Bean
     public ChatClient chatClient(ChatClient.Builder builder) {
@@ -37,7 +38,17 @@ public class AiConfig {
         return realKeyConfigured;
     }
 
+    public String getCurrentModel() {
+        return currentModel;
+    }
+
     public synchronized void refreshApiKey(String newApiKey) {
+        refreshClient(newApiKey, currentModel);
+    }
+
+    public synchronized void refreshClient(String newApiKey, String modelName) {
+        String normalizedModel = modelName == null || modelName.isBlank() ? DEFAULT_MODEL : modelName.trim();
+
         RestClient.Builder restClientBuilder = RestClient.builder()
                 .requestFactory(new HttpComponentsClientHttpRequestFactory());
 
@@ -51,12 +62,13 @@ public class AiConfig {
         OpenAiChatModel model = OpenAiChatModel.builder()
                 .openAiApi(api)
                 .defaultOptions(OpenAiChatOptions.builder()
-                        .model(MODEL)
+                        .model(normalizedModel)
                         .temperature(TEMPERATURE)
                         .build())
                 .build();
 
         this.currentChatClient = ChatClient.builder(model).build();
+        this.currentModel = normalizedModel;
         this.realKeyConfigured = true;
     }
 }

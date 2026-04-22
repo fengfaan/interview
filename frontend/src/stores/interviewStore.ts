@@ -42,8 +42,11 @@ export const useInterviewStore = defineStore('interview', () => {
   const score = ref<number | null>(null)
   const commentary = ref('')
   const followUpQuestion = ref('')
+  const recommendedAnswer = ref('')
+  const answerExpanded = ref(false)
   const isLoading = ref(false)
   const isStreaming = ref(false)
+  const isAnswerStreaming = ref(false)
   const error = ref('')
 
   function restore() {
@@ -60,6 +63,8 @@ export const useInterviewStore = defineStore('interview', () => {
       score.value = saved.score ?? null
       commentary.value = saved.commentary ?? ''
       followUpQuestion.value = saved.followUpQuestion ?? ''
+      recommendedAnswer.value = saved.recommendedAnswer ?? ''
+      answerExpanded.value = saved.answerExpanded ?? false
     }
   }
 
@@ -76,7 +81,15 @@ export const useInterviewStore = defineStore('interview', () => {
       score: score.value,
       commentary: commentary.value,
       followUpQuestion: followUpQuestion.value,
+      recommendedAnswer: recommendedAnswer.value,
+      answerExpanded: answerExpanded.value,
     })
+  }
+
+  function resetRecommendedAnswer() {
+    recommendedAnswer.value = ''
+    answerExpanded.value = false
+    isAnswerStreaming.value = false
   }
 
   async function startSession() {
@@ -87,6 +100,7 @@ export const useInterviewStore = defineStore('interview', () => {
     score.value = null
     commentary.value = ''
     followUpQuestion.value = ''
+    resetRecommendedAnswer()
     try {
       const res = await api.generateQuestion({
         direction: direction.value,
@@ -111,6 +125,7 @@ export const useInterviewStore = defineStore('interview', () => {
     score.value = null
     commentary.value = ''
     followUpQuestion.value = ''
+    resetRecommendedAnswer()
     try {
       const res = await api.generateQuestion({
         direction: direction.value,
@@ -182,6 +197,36 @@ export const useInterviewStore = defineStore('interview', () => {
     }
   }
 
+  async function generateRecommendedAnswer() {
+    if (!currentQuestion.value) return
+    error.value = ''
+    recommendedAnswer.value = ''
+    answerExpanded.value = true
+    isAnswerStreaming.value = true
+    try {
+      await api.streamRecommendedAnswer(
+        {
+          direction: direction.value,
+          level: level.value,
+          question: currentQuestion.value.question,
+          expectedKeywords: currentQuestion.value.expectedKeywords,
+        },
+        (chunk) => {
+          recommendedAnswer.value += chunk
+        },
+        (err) => {
+          error.value = err
+          isAnswerStreaming.value = false
+        },
+      )
+      isAnswerStreaming.value = false
+      persist()
+    } catch (e: any) {
+      error.value = e.message || '推荐答案生成失败'
+      isAnswerStreaming.value = false
+    }
+  }
+
   async function skipQuestion() {
     if (!currentQuestion.value) return
     history.value.push({
@@ -194,6 +239,7 @@ export const useInterviewStore = defineStore('interview', () => {
     feedbackExpanded.value = false
     keywordHits.value = null
     commentary.value = ''
+    resetRecommendedAnswer()
     await generateQuestion()
   }
 
@@ -212,6 +258,7 @@ export const useInterviewStore = defineStore('interview', () => {
     keywordHits.value = null
     score.value = null
     commentary.value = ''
+    resetRecommendedAnswer()
 
     if (followUpQuestion.value) {
       currentQuestion.value = {
@@ -238,8 +285,11 @@ export const useInterviewStore = defineStore('interview', () => {
     score.value = null
     commentary.value = ''
     followUpQuestion.value = ''
+    recommendedAnswer.value = ''
+    answerExpanded.value = false
     isLoading.value = false
     isStreaming.value = false
+    isAnswerStreaming.value = false
     error.value = ''
     persist()
   }
@@ -249,8 +299,9 @@ export const useInterviewStore = defineStore('interview', () => {
   return {
     direction, level, isStarted, currentQuestion, draftAnswer, history,
     feedbackExpanded, keywordHits, score, commentary, followUpQuestion,
-    isLoading, isStreaming, error,
+    recommendedAnswer, answerExpanded,
+    isLoading, isStreaming, isAnswerStreaming, error,
     startSession, generateQuestion, submitAnswer, skipQuestion,
-    continueChallenge, newSession, persist,
+    continueChallenge, generateRecommendedAnswer, newSession, persist,
   }
 })

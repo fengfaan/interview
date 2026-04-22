@@ -1,6 +1,10 @@
 server:
   port: 8080
 
+app:
+  prompts:
+    directory: ${PROMPT_DIR:prompts}
+
 spring:
   ai:
     openai:

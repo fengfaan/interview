@@ -5,6 +5,19 @@ import * as api from '../api/resumeApi'
 import { loadState, saveState } from '../utils/localStorage'
 
 const STORAGE_KEY = 'ai-career-prep.resume-optimizer'
+const MIN_JD_MEANINGFUL_CHARS = 30
+const MIN_RESUME_MEANINGFUL_CHARS = 50
+const JD_SIGNALS = ['岗位', '职位', '职责', '要求', '任职', '招聘', '经验', '熟悉', '负责', '优先', 'Java', 'Spring', 'Vue', 'React', 'Go', 'Python', 'MySQL', 'Redis', '架构', '系统']
+const RESUME_SIGNALS = ['项目', '工作', '经历', '经验', '技能', '教育', '公司', '负责', '开发', '优化', 'Java', 'Spring', 'Vue', 'React', 'Go', 'Python', 'MySQL', 'Redis', '架构', '系统']
+
+function meaningfulLength(text: string) {
+  return Array.from(text).filter((char) => /[\p{L}\p{N}]/u.test(char)).length
+}
+
+function containsAny(text: string, signals: string[]) {
+  const normalized = text.toLowerCase()
+  return signals.some((signal) => normalized.includes(signal.toLowerCase()))
+}
 
 export const useResumeStore = defineStore('resume', () => {
   const jobDescription = ref('')
@@ -22,6 +35,19 @@ export const useResumeStore = defineStore('resume', () => {
     if (!analysisResult.value) return []
     return analysisResult.value.suggestions.filter(s => !dismissedSuggestions.value.has(s.id))
   })
+
+  const inputValidationMessage = computed(() => {
+    const jd = jobDescription.value.trim()
+    const cv = resume.value.trim()
+    if (!jd && !cv) return '请先粘贴目标 JD 和简历内容'
+    if (meaningfulLength(jd) < MIN_JD_MEANINGFUL_CHARS) return 'JD 内容太少，请粘贴至少一段完整的岗位职责或任职要求'
+    if (meaningfulLength(cv) < MIN_RESUME_MEANINGFUL_CHARS) return '简历内容太少，请至少填写一段包含项目、经历或技能的内容'
+    if (!containsAny(jd, JD_SIGNALS)) return 'JD 缺少岗位职责、任职要求或技术关键词'
+    if (!containsAny(cv, RESUME_SIGNALS)) return '简历缺少项目、经历、技能或技术关键词'
+    return ''
+  })
+
+  const canAnalyze = computed(() => !inputValidationMessage.value && !isLoading.value)
 
   function restore() {
     const saved = loadState(STORAGE_KEY)
@@ -43,8 +69,11 @@ export const useResumeStore = defineStore('resume', () => {
   }
 
   async function analyze() {
-    if (!jobDescription.value.trim() || !resume.value.trim()) return
     error.value = ''
+    if (inputValidationMessage.value) {
+      error.value = inputValidationMessage.value
+      return
+    }
     isLoading.value = true
     analysisResult.value = null
     starWorkspaceExpanded.value = false
@@ -122,7 +151,7 @@ export const useResumeStore = defineStore('resume', () => {
   return {
     jobDescription, resume, analysisResult, selectedSuggestion, starRewrite,
     starWorkspaceExpanded, isLoading, isStreaming, error, dismissedSuggestions,
-    visibleSuggestions,
+    visibleSuggestions, inputValidationMessage, canAnalyze,
     analyze, selectSuggestion, dismissSuggestion, applyStarRewrite, persist,
   }
 })

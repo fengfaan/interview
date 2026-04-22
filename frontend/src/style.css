@@ -14,3 +14,49 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #dcd9da; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #c2c6d6; }
+
+.markdown-body {
+  @apply text-sm leading-7;
+}
+
+.markdown-body h2 {
+  @apply mt-6 mb-3 text-lg font-headline font-bold text-on-surface first:mt-0;
+}
+
+.markdown-body h3 {
+  @apply mt-5 mb-2 text-base font-headline font-bold text-on-surface;
+}
+
+.markdown-body p {
+  @apply my-3;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  @apply my-3 pl-6;
+}
+
+.markdown-body ul {
+  @apply list-disc;
+}
+
+.markdown-body ol {
+  @apply list-decimal;
+}
+
+.markdown-body li {
+  @apply my-1;
+}
+
+.markdown-body code {
+  @apply rounded bg-surface-container-high px-1.5 py-0.5 font-mono text-[0.85em];
+}
+
+.markdown-body pre {
+  @apply my-4 overflow-x-auto rounded-xl bg-inverse-surface p-4;
+  color: #f3f0f1;
+}
+
+.markdown-body pre code {
+  @apply bg-transparent p-0 text-inherit;
+}

@@ -84,6 +84,25 @@
               class="bg-primary-fixed/50 text-on-primary-fixed px-2 py-0.5 rounded text-xs"
             >{{ kw }}</span>
           </div>
+          <div class="mt-6 flex flex-wrap items-center gap-3">
+            <button
+              @click="store.generateRecommendedAnswer()"
+              :disabled="store.isAnswerStreaming || store.isLoading"
+              class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label font-medium rounded-lg px-4 py-2 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <span v-if="store.isAnswerStreaming" class="material-symbols-outlined animate-spin text-base">progress_activity</span>
+              <span v-else class="material-symbols-outlined text-base">school</span>
+              {{ store.isAnswerStreaming ? '生成背题答案...' : '背题答案' }}
+            </button>
+            <button
+              v-if="store.recommendedAnswer"
+              @click="store.answerExpanded = !store.answerExpanded"
+              class="text-sm text-on-surface-variant hover:text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-low transition-colors flex items-center gap-1"
+            >
+              <span class="material-symbols-outlined text-base">{{ store.answerExpanded ? 'expand_less' : 'expand_more' }}</span>
+              {{ store.answerExpanded ? '收起答案' : '查看答案' }}
+            </button>
+          </div>
         </div>
 
         <!-- Answer Editor -->
@@ -100,19 +119,59 @@
             <div class="flex items-center gap-3">
               <button
                 @click="store.skipQuestion()"
-                :disabled="store.isLoading || store.isStreaming"
+                :disabled="store.isLoading || store.isStreaming || store.isAnswerStreaming"
                 class="text-sm text-on-surface-variant hover:text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-highest transition-colors"
               >
                 跳过此题
               </button>
               <button
                 @click="store.submitAnswer()"
-                :disabled="store.isLoading || store.isStreaming || !store.draftAnswer.trim()"
+                :disabled="store.isLoading || store.isStreaming || store.isAnswerStreaming || !store.draftAnswer.trim()"
                 class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-label font-medium rounded-lg px-6 py-2.5 shadow-md hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
               >
                 提交回答
                 <span class="material-symbols-outlined text-sm">send</span>
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommended Answer Panel -->
+      <div
+        v-if="store.answerExpanded"
+        class="mt-8 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden"
+      >
+        <div class="bg-surface-container-low px-6 py-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">menu_book</span>
+            <h3 class="font-headline font-bold text-on-surface">AI 推荐背题答案</h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <div v-if="store.isAnswerStreaming" class="flex items-center gap-2 text-xs font-label text-primary">
+              <span class="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              生成中...
+            </div>
+            <button
+              v-if="store.recommendedAnswer"
+              @click="copyRecommendedAnswer"
+              class="text-sm font-medium text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors flex items-center gap-1"
+            >
+              <span class="material-symbols-outlined text-base">{{ copiedAnswer ? 'check' : 'content_copy' }}</span>
+              {{ copiedAnswer ? '已复制' : '复制 MD' }}
+            </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <div
+            v-if="store.recommendedAnswer"
+            class="markdown-body text-on-surface"
+            v-html="renderedRecommendedAnswer"
+          ></div>
+          <div v-else class="min-h-[160px] flex items-center justify-center text-on-surface-variant">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+              正在生成适合背诵的 Markdown 答案...
             </div>
           </div>
         </div>
@@ -207,17 +266,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { marked } from 'marked'
+import { computed, ref } from 'vue'
 import { useInterviewStore } from '../stores/interviewStore'
 import { DIRECTIONS, LEVELS } from '../types/interview'
+import { renderMarkdown } from '../utils/markdown'
 
 const store = useInterviewStore()
+const copiedAnswer = ref(false)
 
 const renderedCommentary = computed(() => {
   if (!store.commentary) return ''
-  return marked(store.commentary) as string
+  return renderMarkdown(store.commentary)
 })
+
+const renderedRecommendedAnswer = computed(() => {
+  if (!store.recommendedAnswer) return ''
+  return renderMarkdown(store.recommendedAnswer)
+})
+
+async function copyRecommendedAnswer() {
+  if (!store.recommendedAnswer) return
+  try {
+    await navigator.clipboard.writeText(store.recommendedAnswer)
+    copiedAnswer.value = true
+    window.setTimeout(() => {
+      copiedAnswer.value = false
+    }, 1600)
+  } catch {
+    store.error = '复制失败，请手动选择答案内容复制'
+  }
+}
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {

@@ -1,5 +1,18 @@
 const API_BASE = '/api'
 
+function readSseDataLine(line: string) {
+  const index = line.indexOf(':')
+  if (index === -1) {
+    return { field: line, value: '' }
+  }
+  const field = line.slice(0, index)
+  const rawValue = line.slice(index + 1)
+  return {
+    field,
+    value: rawValue.startsWith(' ') ? rawValue.slice(1) : rawValue,
+  }
+}
+
 export async function streamPost(
   url: string,
   body: unknown,
@@ -31,33 +44,57 @@ export async function streamPost(
   const decoder = new TextDecoder()
   let buffer = ''
 
+  function handleEvent(rawEvent: string) {
+    if (!rawEvent.trim()) return false
+
+    let eventType = 'message'
+    const dataLines: string[] = []
+
+    for (const line of rawEvent.split(/\r?\n/)) {
+      if (!line || line.startsWith(':')) continue
+
+      const { field, value } = readSseDataLine(line)
+      if (field === 'event') {
+        eventType = value
+      } else if (field === 'data') {
+        dataLines.push(value)
+      }
+    }
+
+    if (!dataLines.length) return false
+
+    const data = dataLines.join('\n')
+    if (data === '[DONE]') return true
+
+    if (eventType === 'error') {
+      try {
+        const err = JSON.parse(data)
+        onError?.(err.message || '流式生成出错')
+      } catch {
+        onError?.(data)
+      }
+      return true
+    }
+
+    onChunk(data)
+    return false
+  }
+
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
 
     buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
+    const events = buffer.split(/\r?\n\r?\n/)
+    buffer = events.pop() || ''
 
-    let isErrorEvent = false
-    for (const line of lines) {
-      if (line.startsWith('event:') && line.includes('error')) {
-        isErrorEvent = true
-      } else if (line.startsWith('data:')) {
-        const data = line.startsWith('data: ') ? line.slice(6) : line.slice(5)
-        if (data === '[DONE]') return
-        if (isErrorEvent) {
-          try {
-            const err = JSON.parse(data)
-            onError?.(err.message || '流式生成出错')
-          } catch {
-            onError?.(data)
-          }
-          return
-        }
-        onChunk(data)
-        isErrorEvent = false
-      }
+    for (const event of events) {
+      if (handleEvent(event)) return
     }
+  }
+
+  buffer += decoder.decode()
+  if (buffer.trim()) {
+    handleEvent(buffer)
   }
 }

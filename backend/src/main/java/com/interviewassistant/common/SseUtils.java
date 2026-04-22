@@ -34,10 +34,26 @@ public class SseUtils {
         try {
             emitter.send(SseEmitter.event()
                     .name("error")
-                    .data("{\"error\":\"" + errorCode + "\",\"message\":\"" + message + "\"}",
+                    .data("{\"error\":\"" + escapeJson(errorCode) + "\",\"message\":\"" + escapeJson(message) + "\"}",
                             MediaType.APPLICATION_JSON));
         } catch (IOException ignored) {
         }
         emitter.complete();
+    }
+
+    public static void sendAiError(SseEmitter emitter, Throwable error, String fallbackMessage) {
+        sendError(emitter, AiErrorUtils.errorCode(error), AiErrorUtils.userMessage(error, fallbackMessage));
+    }
+
+    private static String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }

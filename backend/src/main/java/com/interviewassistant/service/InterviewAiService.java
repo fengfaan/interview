@@ -2,13 +2,14 @@ package com.interviewassistant.service;
 
 import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.dto.interview.*;
-import com.interviewassistant.prompt.InterviewPrompts;
+import com.interviewassistant.prompt.InterviewLabels;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 public class InterviewAiService {
 
     private final AiConfig aiConfig;
+    private final PromptService promptService;
     private final AtomicInteger questionCounter = new AtomicInteger(1);
 
     public QuestionResponse generateQuestion(String direction, String level, List<HistoryEntry> history) {
@@ -26,14 +28,15 @@ public class InterviewAiService {
                 .map(h -> "Q: " + h.getQuestion() + (h.isSkipped() ? " (已跳过)" : ""))
                 .collect(Collectors.joining("\n"));
 
-        String userMessage = String.format(InterviewPrompts.QUESTION_PROMPT,
-                InterviewPrompts.directionLabel(direction),
-                InterviewPrompts.difficultyLabel(level),
-                historySummary);
+        String userMessage = promptService.render("interview/question.md", Map.of(
+                "direction", InterviewLabels.directionLabel(direction),
+                "difficulty", InterviewLabels.difficultyLabel(level),
+                "history", historySummary
+        ));
 
         var converter = new BeanOutputConverter<>(QuestionResponse.class);
         String response = aiConfig.getCurrentChatClient().prompt()
-                .system(InterviewPrompts.SYSTEM_PROMPT)
+                .system(promptService.load("interview/system.md"))
                 .user(userMessage + "\n\n" + converter.getFormat())
                 .call()
                 .content();
@@ -47,14 +50,17 @@ public class InterviewAiService {
 
     public FeedbackResponse analyzeFeedback(String direction, String level, String question,
                                              String answer, List<String> expectedKeywords) {
-        String userMessage = String.format(InterviewPrompts.FEEDBACK_PROMPT,
-                InterviewPrompts.directionLabel(direction),
-                InterviewPrompts.difficultyLabel(level),
-                question, answer, expectedKeywords);
+        String userMessage = promptService.render("interview/feedback-json.md", Map.of(
+                "direction", InterviewLabels.directionLabel(direction),
+                "difficulty", InterviewLabels.difficultyLabel(level),
+                "question", question,
+                "answer", answer,
+                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()
+        ));
 
         var converter = new BeanOutputConverter<>(FeedbackResponse.class);
         String response = aiConfig.getCurrentChatClient().prompt()
-                .system(InterviewPrompts.SYSTEM_PROMPT)
+                .system(promptService.load("interview/system.md"))
                 .user(userMessage + "\n\n" + converter.getFormat())
                 .call()
                 .content();
@@ -65,10 +71,23 @@ public class InterviewAiService {
     public String buildFeedbackStreamPrompt(String direction, String level, String question,
                                              String answer, List<String> expectedKeywords,
                                              String followUpQuestion) {
-        return String.format(InterviewPrompts.FEEDBACK_STREAM_PROMPT,
-                InterviewPrompts.directionLabel(direction),
-                InterviewPrompts.difficultyLabel(level),
-                question, answer, expectedKeywords,
-                followUpQuestion != null ? followUpQuestion : "（请基于用户回答生成一个相关的进阶问题）");
+        return promptService.render("interview/feedback-stream.md", Map.of(
+                "direction", InterviewLabels.directionLabel(direction),
+                "difficulty", InterviewLabels.difficultyLabel(level),
+                "question", question,
+                "answer", answer,
+                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of(),
+                "followUpQuestion", followUpQuestion != null ? followUpQuestion : "（请基于用户回答生成一个相关的进阶问题）"
+        ));
+    }
+
+    public String buildRecommendedAnswerPrompt(String direction, String level, String question,
+                                               List<String> expectedKeywords) {
+        return promptService.render("interview/recommended-answer.md", Map.of(
+                "direction", InterviewLabels.directionLabel(direction),
+                "difficulty", InterviewLabels.difficultyLabel(level),
+                "question", question,
+                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()
+        ));
     }
 }

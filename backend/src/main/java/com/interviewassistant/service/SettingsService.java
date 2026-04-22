@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -24,15 +25,24 @@ public class SettingsService {
 
     private static final String SETTINGS_FILE = "settings.properties";
     private static final String KEY_PROP = "api-key";
+    private static final String MODEL_PROP = "model";
     private static final String PLACEHOLDER = "not-configured";
+    private static final List<String> MODEL_OPTIONS = List.of(
+            "glm-4-flash",
+            "glm-4-air",
+            "glm-4-airx",
+            "glm-4-plus",
+            "glm-4-long",
+            "glm-z1-flash"
+    );
     private final ReentrantLock fileLock = new ReentrantLock();
 
     @PostConstruct
     void init() {
         String realKey = getCurrentApiKey();
         if (realKey != null) {
-            aiConfig.refreshApiKey(realKey);
-            log.info("Loaded API key from settings file");
+            aiConfig.refreshClient(realKey, getCurrentModel());
+            log.info("Loaded API key and model settings");
         }
     }
 
@@ -41,10 +51,26 @@ public class SettingsService {
     }
 
     public String getCurrentApiKey() {
-        String fromFile = readKeyFromFile();
+        String fromFile = readPropertyFromFile(KEY_PROP);
         if (isRealKey(fromFile)) return fromFile;
         String fromEnv = environment.getProperty("spring.ai.openai.api-key");
         return isRealKey(fromEnv) ? fromEnv : null;
+    }
+
+    public String getCurrentModel() {
+        String fromFile = readPropertyFromFile(MODEL_PROP);
+        if (fromFile != null && !fromFile.isBlank()) return fromFile.trim();
+        String fromEnv = environment.getProperty("spring.ai.openai.chat.options.model");
+        if (fromEnv != null && !fromEnv.isBlank()) return fromEnv.trim();
+        return AiConfig.DEFAULT_MODEL;
+    }
+
+    public String getDefaultModel() {
+        return AiConfig.DEFAULT_MODEL;
+    }
+
+    public List<String> getModelOptions() {
+        return MODEL_OPTIONS;
     }
 
     public String maskKey(String key) {
@@ -53,6 +79,20 @@ public class SettingsService {
     }
 
     public void saveApiKey(String newKey) {
+        saveSetting(KEY_PROP, newKey);
+        aiConfig.refreshClient(newKey, getCurrentModel());
+    }
+
+    public void saveModel(String newModel) {
+        String normalizedModel = normalizeModel(newModel);
+        saveSetting(MODEL_PROP, normalizedModel);
+        String realKey = getCurrentApiKey();
+        if (realKey != null) {
+            aiConfig.refreshClient(realKey, normalizedModel);
+        }
+    }
+
+    private void saveSetting(String key, String value) {
         fileLock.lock();
         try {
             Path path = Paths.get(SETTINGS_FILE);
@@ -62,20 +102,19 @@ public class SettingsService {
                     props.load(is);
                 }
             }
-            props.setProperty(KEY_PROP, newKey);
+            props.setProperty(key, value);
             try (var os = Files.newOutputStream(path)) {
                 props.store(os, "Interview Assistant Settings");
             }
-            log.info("API key saved to settings file");
+            log.info("Setting saved: {}", key);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to save API key: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to save setting: " + e.getMessage(), e);
         } finally {
             fileLock.unlock();
         }
-        aiConfig.refreshApiKey(newKey);
     }
 
-    private String readKeyFromFile() {
+    private String readPropertyFromFile(String key) {
         Path path = Paths.get(SETTINGS_FILE);
         if (!Files.exists(path)) return null;
         fileLock.lock();
@@ -84,12 +123,26 @@ public class SettingsService {
             try (var is = Files.newInputStream(path)) {
                 props.load(is);
             }
-            return props.getProperty(KEY_PROP);
+            return props.getProperty(key);
         } catch (IOException e) {
             log.warn("Failed to read settings file", e);
             return null;
         } finally {
             fileLock.unlock();
         }
+    }
+
+    private String normalizeModel(String model) {
+        String normalized = model == null ? "" : model.trim();
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("模型不能为空");
+        }
+        if (normalized.length() > 100) {
+            throw new IllegalArgumentException("模型名称不能超过 100 个字符");
+        }
+        if (!normalized.matches("[A-Za-z0-9._:-]+")) {
+            throw new IllegalArgumentException("模型名称只能包含字母、数字、点、下划线、冒号或短横线");
+        }
+        return normalized;
     }
 }

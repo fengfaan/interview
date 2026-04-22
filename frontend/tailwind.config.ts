@@ -12,6 +12,7 @@ export default {
         'surface-container-highest': '#E5E2E3',
         'surface-container-lowest': '#FFFFFF',
         'inverse-surface': '#303031',
+        'inverse-on-surface': '#F3F0F1',
         primary: '#0058BE',
         'primary-container': '#2170E4',
         'primary-fixed': '#D8E2FF',

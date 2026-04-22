@@ -6,13 +6,16 @@
         <h2 class="text-xl font-extrabold text-on-surface font-headline">简历调优台</h2>
         <button
           @click="store.analyze()"
-          :disabled="store.isLoading || !store.jobDescription.trim() || !store.resume.trim()"
+          :disabled="!store.canAnalyze"
           class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-label font-medium rounded-xl px-6 py-2.5 shadow-md hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
         >
           <span class="material-symbols-outlined text-base">auto_fix_high</span>
           {{ store.isLoading ? '分析中...' : '生成报告' }}
         </button>
       </div>
+      <p v-if="store.inputValidationMessage" class="text-xs text-on-surface-variant mt-2 text-right">
+        {{ store.inputValidationMessage }}
+      </p>
     </header>
 
     <!-- Error Banner -->
@@ -37,6 +40,7 @@
               v-model="store.jobDescription"
               class="w-full min-h-[200px] bg-surface-container-lowest p-6 font-body text-sm text-on-surface placeholder-on-surface-variant/50 focus:ring-0 resize-y border-none outline-none"
               placeholder="粘贴目标职位 JD 内容..."
+              @input="store.persist()"
               @keydown="handleKeydown"
             ></textarea>
           </div>
@@ -197,14 +201,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { marked } from 'marked'
 import { useResumeStore } from '../stores/resumeStore'
+import { renderMarkdown } from '../utils/markdown'
 
 const store = useResumeStore()
 
 const renderedRewrite = computed(() => {
   if (!store.starRewrite) return ''
-  return marked(store.starRewrite) as string
+  return renderMarkdown(store.starRewrite)
 })
 
 const scoreColor = computed(() => {
