@@ -10,6 +10,8 @@ import com.interviewassistant.dto.settings.PromptContentResponse;
 import com.interviewassistant.dto.settings.PromptFileResponse;
 import com.interviewassistant.dto.settings.PromptImproveRequest;
 import com.interviewassistant.dto.settings.PromptImproveResponse;
+import com.interviewassistant.dto.knowledge.VaultConfigRequest;
+import com.interviewassistant.dto.knowledge.VaultConfigResponse;
 import com.interviewassistant.dto.settings.PromptSaveRequest;
 import com.interviewassistant.service.PromptService;
 import com.interviewassistant.service.SettingsService;
@@ -61,6 +63,24 @@ public class SettingsController {
     @GetMapping("/prompts")
     public ApiResponse<List<PromptFileResponse>> listPrompts() {
         return ApiResponse.ok(promptService.listFiles());
+    }
+
+    @GetMapping("/vault")
+    public ApiResponse<VaultConfigResponse> getVaultConfig() {
+        String path = settingsService.getVaultPath();
+        boolean configured = settingsService.isVaultPathValid();
+        return ApiResponse.ok(new VaultConfigResponse(configured, configured ? path : null));
+    }
+
+    @PostMapping("/vault")
+    public ApiResponse<VaultConfigResponse> saveVaultConfig(@Valid @RequestBody VaultConfigRequest request) {
+        try {
+            settingsService.saveVaultPath(request.getPath());
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail("INVALID_VAULT_PATH", e.getMessage());
+        }
+        String path = settingsService.getVaultPath();
+        return ApiResponse.ok(new VaultConfigResponse(true, path));
     }
 
     @GetMapping("/prompts/content")

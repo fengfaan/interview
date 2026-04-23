@@ -121,6 +121,39 @@
             </button>
           </div>
         </section>
+
+        <!-- Obsidian Vault Card -->
+        <section class="bg-surface-container-lowest p-6 rounded-xl shadow-sm xl:col-span-2">
+          <div class="flex items-center gap-3 mb-1">
+            <span class="material-symbols-outlined text-primary">folder_open</span>
+            <h3 class="font-headline font-bold text-on-surface">Obsidian Vault</h3>
+          </div>
+          <p class="text-sm text-on-surface-variant mb-5 ml-9">
+            配置本地 Obsidian Vault 目录，面试反馈和推荐答案会保存到其中的「面试知识库」文件夹。
+          </p>
+
+          <label class="text-xs font-label text-on-surface-variant block mb-2">Vault 绝对路径</label>
+          <input
+            v-model="store.vaultPathDraft"
+            placeholder="/Users/yourname/Documents/ObsidianVault"
+            class="w-full bg-surface-container-high text-on-surface border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+          />
+
+          <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
+            <span class="text-xs text-on-surface-variant">
+              {{ store.vaultConfigured ? `已配置: ${store.currentVaultPath}` : '尚未配置 Vault 路径' }}
+            </span>
+            <button
+              @click="store.saveVaultConfig()"
+              :disabled="store.isVaultSaving || !store.vaultPathDraft.trim() || !store.hasVaultChanges"
+              class="bg-primary text-on-primary font-label font-medium rounded-lg px-6 py-2.5 shadow-md hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+            >
+              <span v-if="store.isVaultSaving" class="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              <span v-else class="material-symbols-outlined text-sm">save</span>
+              {{ store.isVaultSaving ? '保存中...' : '保存 Vault' }}
+            </button>
+          </div>
+        </section>
       </div>
 
       <!-- Prompt Manager -->
@@ -264,6 +297,7 @@ const showKey = ref(false)
 onMounted(() => {
   store.loadApiKey()
   store.loadModel()
+  store.loadVaultConfig()
   store.loadPrompts()
 })
 

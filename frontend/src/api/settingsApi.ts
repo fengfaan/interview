@@ -82,3 +82,21 @@ export async function improvePrompt(request: PromptImproveRequest): Promise<Prom
   if (!json.success) throw new Error(json.message || 'AI 优化失败')
   return json.data
 }
+
+export async function getVaultConfig(): Promise<{ configured: boolean; path: string | null }> {
+  const res = await fetch(`${API_BASE}/vault`)
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || '获取 Vault 配置失败')
+  return json.data
+}
+
+export async function saveVaultConfig(path: string): Promise<{ configured: boolean; path: string | null }> {
+  const res = await fetch(`${API_BASE}/vault`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path }),
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || '保存 Vault 配置失败')
+  return json.data
+}

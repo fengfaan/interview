@@ -40,6 +40,16 @@
             简历调优台
           </RouterLink>
         </li>
+        <li>
+          <RouterLink
+            to="/knowledge"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300"
+            :class="isActive('/knowledge') ? 'bg-white/10 text-white font-bold' : 'text-neutral-400 hover:text-white hover:bg-white/5'"
+          >
+            <span class="material-symbols-outlined">auto_stories</span>
+            知识库
+          </RouterLink>
+        </li>
       </ul>
     </div>
 

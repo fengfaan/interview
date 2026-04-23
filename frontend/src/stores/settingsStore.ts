@@ -19,6 +19,11 @@ export const useSettingsStore = defineStore('settings', () => {
   const defaultModel = ref('')
   const modelOptions = ref<string[]>([])
   const modelDraft = ref('')
+  const currentVaultPath = ref('')
+  const vaultPathDraft = ref('')
+  const vaultConfigured = ref(false)
+  const isVaultLoading = ref(false)
+  const isVaultSaving = ref(false)
   const promptFiles = ref<PromptFile[]>([])
   const selectedPromptPath = ref('')
   const promptContent = ref('')
@@ -32,6 +37,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const hasPromptChanges = computed(() => promptDraft.value !== promptContent.value)
   const hasModelChanges = computed(() => modelDraft.value.trim() !== currentModel.value)
+  const hasVaultChanges = computed(() => vaultPathDraft.value.trim() !== currentVaultPath.value)
 
   async function loadApiKey() {
     error.value = ''
@@ -95,6 +101,40 @@ export const useSettingsStore = defineStore('settings', () => {
       error.value = e.message || '保存模型失败'
     } finally {
       isModelSaving.value = false
+    }
+  }
+
+  async function loadVaultConfig() {
+    error.value = ''
+    isVaultLoading.value = true
+    try {
+      const res = await api.getVaultConfig()
+      vaultConfigured.value = res.configured
+      currentVaultPath.value = res.path || ''
+      vaultPathDraft.value = res.path || ''
+    } catch (e: any) {
+      error.value = e.message || '加载 Vault 配置失败'
+    } finally {
+      isVaultLoading.value = false
+    }
+  }
+
+  async function saveVaultConfig() {
+    const path = vaultPathDraft.value.trim()
+    if (!path) return
+    error.value = ''
+    successMessage.value = ''
+    isVaultSaving.value = true
+    try {
+      const res = await api.saveVaultConfig(path)
+      vaultConfigured.value = res.configured
+      currentVaultPath.value = res.path || ''
+      vaultPathDraft.value = res.path || ''
+      successMessage.value = 'Obsidian Vault 路径已保存'
+    } catch (e: any) {
+      error.value = e.message || '保存 Vault 配置失败'
+    } finally {
+      isVaultSaving.value = false
     }
   }
 
@@ -182,12 +222,15 @@ export const useSettingsStore = defineStore('settings', () => {
   return {
     maskedKey, configured, isLoading, isSaving,
     isModelLoading, isModelSaving,
+    isVaultLoading, isVaultSaving,
     isPromptLoading, isPromptSaving, isPromptImproving,
     error, successMessage,
     currentModel, defaultModel, modelOptions, modelDraft, hasModelChanges,
+    currentVaultPath, vaultPathDraft, vaultConfigured, hasVaultChanges,
     promptFiles, selectedPromptPath, selectedPrompt, promptContent, promptDraft,
     improveInstruction, improvedDraft, hasPromptChanges,
-    loadApiKey, saveApiKey, loadModel, saveModel, loadPrompts, selectPrompt, savePrompt,
+    loadApiKey, saveApiKey, loadModel, saveModel, loadVaultConfig, saveVaultConfig,
+    loadPrompts, selectPrompt, savePrompt,
     improvePrompt, applyImprovedDraft,
   }
 })

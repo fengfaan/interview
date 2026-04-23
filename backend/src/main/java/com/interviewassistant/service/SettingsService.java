@@ -27,6 +27,7 @@ public class SettingsService {
     private static final String SETTINGS_FILE_PROP = "app.settings.file";
     private static final String KEY_PROP = "api-key";
     private static final String MODEL_PROP = "model";
+    private static final String VAULT_PATH_PROP = "obsidian.vault.path";
     private static final String PLACEHOLDER = "not-configured";
     private static final List<String> MODEL_OPTIONS = List.of(
             "glm-4-flash",
@@ -85,6 +86,32 @@ public class SettingsService {
     public void saveApiKey(String newKey) {
         saveSetting(KEY_PROP, newKey);
         aiConfig.refreshClient(newKey, getCurrentModel());
+    }
+
+    public String getVaultPath() {
+        return readPropertyFromFile(VAULT_PATH_PROP);
+    }
+
+    public boolean isVaultPathValid() {
+        String path = getVaultPath();
+        if (path == null || path.isBlank()) {
+            return false;
+        }
+        Path p = Paths.get(path).toAbsolutePath().normalize();
+        return Files.isDirectory(p) && Files.isReadable(p) && Files.isWritable(p);
+    }
+
+    public void saveVaultPath(String path) {
+        if (path != null && !path.isBlank()) {
+            Path p = Paths.get(path).toAbsolutePath().normalize();
+            if (!Files.exists(p) || !Files.isDirectory(p)) {
+                throw new IllegalArgumentException("路径不存在或不是有效目录");
+            }
+            if (!Files.isReadable(p) || !Files.isWritable(p)) {
+                throw new IllegalArgumentException("路径无读写权限");
+            }
+        }
+        saveSetting(VAULT_PATH_PROP, path == null ? "" : path);
     }
 
     public void saveModel(String newModel) {

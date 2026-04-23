@@ -160,6 +160,17 @@
               <span class="material-symbols-outlined text-base">{{ copiedAnswer ? 'check' : 'content_copy' }}</span>
               {{ copiedAnswer ? '已复制' : '复制 MD' }}
             </button>
+            <button
+              v-if="store.recommendedAnswer"
+              @click="saveAnswer"
+              :disabled="saveAnswerState !== 'idle'"
+              class="text-sm font-medium text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+            >
+              <span v-if="saveAnswerState === 'saving'" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+              <span v-else-if="saveAnswerState === 'saved'" class="material-symbols-outlined text-base text-secondary">check_circle</span>
+              <span v-else class="material-symbols-outlined text-base">bookmark_add</span>
+              {{ saveAnswerState === 'saving' ? '保存中...' : saveAnswerState === 'saved' ? '已保存' : '保存到知识库' }}
+            </button>
           </div>
         </div>
         <div class="p-6">
@@ -251,13 +262,25 @@
               <h4 class="font-headline font-bold text-on-surface mb-1">继续挑战？</h4>
               <p class="text-sm text-on-surface-variant">点击进入下一道进阶问题</p>
             </div>
-            <button
-              @click="store.continueChallenge()"
-              class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <span class="material-symbols-outlined text-base">psychology</span>
-              继续挑战
-            </button>
+            <div class="flex items-center gap-3">
+              <button
+                @click="saveFeedback"
+                :disabled="saveFeedbackState !== 'idle'"
+                class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <span v-if="saveFeedbackState === 'saving'" class="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                <span v-else-if="saveFeedbackState === 'saved'" class="material-symbols-outlined text-base text-secondary">check_circle</span>
+                <span v-else class="material-symbols-outlined text-base">bookmark_add</span>
+                {{ saveFeedbackState === 'saving' ? '保存中...' : saveFeedbackState === 'saved' ? '已保存' : '保存到知识库' }}
+              </button>
+              <button
+                @click="store.continueChallenge()"
+                class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <span class="material-symbols-outlined text-base">psychology</span>
+                继续挑战
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -268,11 +291,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useInterviewStore } from '../stores/interviewStore'
+import { useKnowledgeStore } from '../stores/knowledgeStore'
 import { DIRECTIONS, LEVELS } from '../types/interview'
 import { renderMarkdown } from '../utils/markdown'
 
 const store = useInterviewStore()
+const knowledgeStore = useKnowledgeStore()
 const copiedAnswer = ref(false)
+const saveFeedbackState = ref<'idle' | 'saving' | 'saved'>('idle')
+const saveAnswerState = ref<'idle' | 'saving' | 'saved'>('idle')
+
+const DIRECTION_LABELS: Record<string, string> = {
+  BACKEND: '后端',
+  FRONTEND: '前端',
+  SYSTEM_DESIGN: '系统设计',
+}
 
 const renderedCommentary = computed(() => {
   if (!store.commentary) return ''
@@ -295,6 +328,58 @@ async function copyRecommendedAnswer() {
   } catch {
     store.error = '复制失败，请手动选择答案内容复制'
   }
+}
+
+async function saveFeedback() {
+  if (!store.currentQuestion || saveFeedbackState.value !== 'idle') return
+  saveFeedbackState.value = 'saving'
+  const q = store.currentQuestion
+  const content = buildFeedbackContent()
+  const ok = await knowledgeStore.saveNote({
+    title: q.question,
+    direction: DIRECTION_LABELS[store.direction] || store.direction,
+    content,
+    tags: q.expectedKeywords.slice(0, 5),
+    questionId: q.questionId,
+    source: 'interview-feedback',
+  })
+  saveFeedbackState.value = ok ? 'saved' : 'idle'
+  if (ok) {
+    window.setTimeout(() => { saveFeedbackState.value = 'idle' }, 2000)
+  }
+}
+
+async function saveAnswer() {
+  if (!store.currentQuestion || !store.recommendedAnswer || saveAnswerState.value !== 'idle') return
+  saveAnswerState.value = 'saving'
+  const q = store.currentQuestion
+  const ok = await knowledgeStore.saveNote({
+    title: q.question,
+    direction: DIRECTION_LABELS[store.direction] || store.direction,
+    content: store.recommendedAnswer,
+    tags: q.expectedKeywords.slice(0, 5),
+    questionId: q.questionId,
+    source: 'recommended-answer',
+  })
+  saveAnswerState.value = ok ? 'saved' : 'idle'
+  if (ok) {
+    window.setTimeout(() => { saveAnswerState.value = 'idle' }, 2000)
+  }
+}
+
+function buildFeedbackContent() {
+  const q = store.currentQuestion!
+  const lines: string[] = [`## 题目\n\n${q.question}`]
+  if (store.keywordHits) {
+    lines.push(`\n## 关键词命中\n\n**命中:** ${store.keywordHits.hit.join(', ') || '无'}\n\n**未命中:** ${store.keywordHits.miss.join(', ') || '无'}`)
+  }
+  if (store.score !== null) {
+    lines.push(`\n**得分:** ${store.score}/100`)
+  }
+  if (store.commentary) {
+    lines.push(`\n## AI 评语\n\n${store.commentary}`)
+  }
+  return lines.join('\n')
 }
 
 function handleKeydown(e: KeyboardEvent) {
