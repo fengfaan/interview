@@ -78,6 +78,8 @@ mvn spring-boot:run
 export ZHIPU_API_KEY="your_api_key_here"
 ```
 
+设置页保存的 API Key 和模型默认持久化到 `backend/settings.properties`。如果需要换到其他位置，可以设置 `SETTINGS_FILE=/absolute/path/to/settings.properties`。
+
 ### 3. 启动前端
 
 ```bash

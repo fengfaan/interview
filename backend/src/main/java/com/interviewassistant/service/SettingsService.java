@@ -23,7 +23,8 @@ public class SettingsService {
     private final AiConfig aiConfig;
     private final Environment environment;
 
-    private static final String SETTINGS_FILE = "settings.properties";
+    private static final String SETTINGS_FILE_NAME = "settings.properties";
+    private static final String SETTINGS_FILE_PROP = "app.settings.file";
     private static final String KEY_PROP = "api-key";
     private static final String MODEL_PROP = "model";
     private static final String PLACEHOLDER = "not-configured";
@@ -39,10 +40,13 @@ public class SettingsService {
 
     @PostConstruct
     void init() {
+        log.info("Settings file resolved: {}", settingsPath());
         String realKey = getCurrentApiKey();
         if (realKey != null) {
             aiConfig.refreshClient(realKey, getCurrentModel());
             log.info("Loaded API key and model settings");
+        } else {
+            log.info("No saved API key found. Please configure it in Settings.");
         }
     }
 
@@ -95,7 +99,7 @@ public class SettingsService {
     private void saveSetting(String key, String value) {
         fileLock.lock();
         try {
-            Path path = Paths.get(SETTINGS_FILE);
+            Path path = settingsPath();
             Properties props = new Properties();
             if (Files.exists(path)) {
                 try (var is = Files.newInputStream(path)) {
@@ -103,10 +107,14 @@ public class SettingsService {
                 }
             }
             props.setProperty(key, value);
+            Path parent = path.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             try (var os = Files.newOutputStream(path)) {
                 props.store(os, "Interview Assistant Settings");
             }
-            log.info("Setting saved: {}", key);
+            log.info("Setting saved: {} -> {}", key, path);
         } catch (IOException e) {
             throw new RuntimeException("Failed to save setting: " + e.getMessage(), e);
         } finally {
@@ -115,7 +123,7 @@ public class SettingsService {
     }
 
     private String readPropertyFromFile(String key) {
-        Path path = Paths.get(SETTINGS_FILE);
+        Path path = settingsPath();
         if (!Files.exists(path)) return null;
         fileLock.lock();
         try {
@@ -130,6 +138,32 @@ public class SettingsService {
         } finally {
             fileLock.unlock();
         }
+    }
+
+    private Path settingsPath() {
+        String configured = environment.getProperty(SETTINGS_FILE_PROP);
+        if (configured != null && !configured.isBlank()) {
+            return Paths.get(configured).toAbsolutePath().normalize();
+        }
+
+        Path cwd = Paths.get("").toAbsolutePath().normalize();
+        Path current = cwd;
+        while (current != null) {
+            Path repoBackendPom = current.resolve("backend").resolve("pom.xml");
+            if (Files.exists(repoBackendPom)) {
+                return current.resolve("backend").resolve(SETTINGS_FILE_NAME).toAbsolutePath().normalize();
+            }
+
+            Path backendPom = current.resolve("pom.xml");
+            Path backendSrc = current.resolve("src").resolve("main");
+            if (Files.exists(backendPom) && Files.isDirectory(backendSrc)) {
+                return current.resolve(SETTINGS_FILE_NAME).toAbsolutePath().normalize();
+            }
+
+            current = current.getParent();
+        }
+
+        return cwd.resolve(SETTINGS_FILE_NAME).toAbsolutePath().normalize();
     }
 
     private String normalizeModel(String model) {

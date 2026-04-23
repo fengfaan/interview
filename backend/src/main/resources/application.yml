@@ -4,6 +4,8 @@ server:
 app:
   prompts:
     directory: ${PROMPT_DIR:prompts}
+  settings:
+    file: ${SETTINGS_FILE:}
 
 spring:
   ai:
