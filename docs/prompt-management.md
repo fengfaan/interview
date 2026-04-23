@@ -53,15 +53,15 @@ app:
 
 ```text
 方向：{{direction}}
-难度：{{difficulty}}
+题型：{{questionType}}
 用户回答：{{answer}}
 ```
 
 当前支持的变量：
 
-- 面试题生成：`direction`、`difficulty`、`history`
-- 面试点评：`direction`、`difficulty`、`question`、`answer`、`expectedKeywords`
-- 面试流式点评：`direction`、`difficulty`、`question`、`answer`、`expectedKeywords`、`followUpQuestion`
+- 面试题生成：`direction`、`questionType`、`history`
+- 面试点评：`direction`、`questionType`、`question`、`answer`、`expectedKeywords`
+- 面试流式点评：`direction`、`questionType`、`question`、`answer`、`expectedKeywords`、`followUpQuestion`
 - 简历分析：`jobDescription`、`resume`
 - STAR 改写：`jobDescription`、`resume`、`suggestionTitle`、`sourceText`
 

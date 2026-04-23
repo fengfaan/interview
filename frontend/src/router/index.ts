@@ -18,6 +18,11 @@ const router = createRouter({
           component: () => import('../views/MockInterviewRoomView.vue'),
         },
         {
+          path: 'rapid',
+          name: 'rapid',
+          component: () => import('../views/RapidQuestionView.vue'),
+        },
+        {
           path: 'resume',
           name: 'resume',
           component: () => import('../views/ResumeOptimizerView.vue'),

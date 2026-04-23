@@ -1,7 +1,7 @@
 请分析以下面试回答。
 
 方向：{{direction}}
-难度：{{difficulty}}
+题型：{{questionType}}
 面试题目：{{question}}
 用户回答：{{answer}}
 期望关键词：{{expectedKeywords}}

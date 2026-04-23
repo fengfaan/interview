@@ -5,7 +5,7 @@ public class InterviewLabels {
     private InterviewLabels() {
     }
 
-    public static String difficultyLabel(String level) {
+    public static String questionTypeLabel(String level) {
         return switch (level) {
             case "BASIC" -> "基础八股";
             case "DEEP_PRINCIPLE" -> "深度原理";
@@ -19,6 +19,8 @@ public class InterviewLabels {
             case "GO_BACKEND" -> "Go后端";
             case "REACT_FRONTEND" -> "React前端";
             case "SYSTEM_DESIGN" -> "系统设计";
+            case "DATABASE_RELATED" -> "数据库相关";
+            case "AI_CODING" -> "AI Agent 开发方向";
             default -> direction;
         };
     }

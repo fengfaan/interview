@@ -1,7 +1,7 @@
 请为下面这道技术面试题生成一份适合“背题 + 复述”的推荐答案。
 
 方向：{{direction}}
-难度：{{difficulty}}
+题型：{{questionType}}
 面试题目：{{question}}
 考察要点：{{expectedKeywords}}
 

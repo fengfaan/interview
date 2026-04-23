@@ -17,9 +17,11 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
 
   const DIRECTIONS = [
     { value: 'all', label: '全部' },
-    { value: '后端', label: '后端' },
-    { value: '前端', label: '前端' },
+    { value: 'Go 后端', label: 'Go 后端' },
+    { value: 'React 前端', label: 'React 前端' },
     { value: '系统设计', label: '系统设计' },
+    { value: '数据库相关', label: '数据库相关' },
+    { value: 'AI Agent 开发方向', label: 'AI Agent 开发方向' },
   ]
 
   async function fetchNotes() {

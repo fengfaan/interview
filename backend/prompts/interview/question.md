@@ -1,7 +1,7 @@
 请生成一道技术面试题。
 
 方向：{{direction}}
-难度：{{difficulty}}
+题型：{{questionType}}
 已有对话历史（请避免重复）：{{history}}
 
 请以 JSON 格式返回：

@@ -22,7 +22,7 @@
 
           <div class="flex items-center gap-2 text-sm font-label text-on-surface-variant">
             <span class="material-symbols-outlined text-base">layers</span>
-            <span>强度:</span>
+            <span>题型:</span>
           </div>
           <div class="flex gap-1">
             <button
@@ -193,7 +193,7 @@
     <div v-else-if="!store.isStarted" class="flex-1 flex items-center justify-center">
       <div class="text-center text-on-surface-variant">
         <span class="material-symbols-outlined text-6xl mb-4 block">psychology</span>
-        <p class="text-lg font-headline font-bold">选择方向和强度，开始模拟面试</p>
+        <p class="text-lg font-headline font-bold">选择方向和题型，开始模拟面试</p>
         <p class="text-sm mt-2">AI 将扮演资深面试官，为你生成真实面试题目</p>
       </div>
     </div>
@@ -302,9 +302,11 @@ const saveFeedbackState = ref<'idle' | 'saving' | 'saved'>('idle')
 const saveAnswerState = ref<'idle' | 'saving' | 'saved'>('idle')
 
 const DIRECTION_LABELS: Record<string, string> = {
-  BACKEND: '后端',
-  FRONTEND: '前端',
+  GO_BACKEND: 'Go 后端',
+  REACT_FRONTEND: 'React 前端',
   SYSTEM_DESIGN: '系统设计',
+  DATABASE_RELATED: '数据库相关',
+  AI_CODING: 'AI Agent 开发方向',
 }
 
 const renderedCommentary = computed(() => {

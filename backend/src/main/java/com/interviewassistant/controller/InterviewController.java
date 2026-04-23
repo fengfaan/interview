@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -33,6 +34,13 @@ public class InterviewController {
         QuestionResponse response = interviewService.generateQuestion(
                 request.getDirection(), request.getLevel(), request.getHistory());
         return ApiResponse.ok(response);
+    }
+
+    @PostMapping("/batch-questions")
+    public ApiResponse<List<BatchQuestionItem>> batchQuestions(@Valid @RequestBody BatchQuestionRequest request) {
+        List<BatchQuestionItem> items = interviewService.generateBatchQuestions(
+                request.getDirection(), request.getLevel(), request.getCount());
+        return ApiResponse.ok(items);
     }
 
     @PostMapping("/feedback")
