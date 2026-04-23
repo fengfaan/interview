@@ -1,9 +1,10 @@
 package com.interviewassistant.service;
 
 import com.interviewassistant.config.AiConfig;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
@@ -39,13 +40,14 @@ public class SettingsService {
     );
     private final ReentrantLock fileLock = new ReentrantLock();
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     void init() {
         log.info("Settings file resolved: {}", settingsPath());
         String realKey = getCurrentApiKey();
         if (realKey != null) {
             aiConfig.refreshClient(realKey, getCurrentModel());
-            log.info("Loaded API key and model settings");
+            log.info("Loaded API key and model settings. model={}, key={}",
+                    aiConfig.getCurrentModel(), aiConfig.getCurrentKeyMask());
         } else {
             log.info("No saved API key found. Please configure it in Settings.");
         }
