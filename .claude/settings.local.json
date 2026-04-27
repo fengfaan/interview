@@ -16,7 +16,21 @@
       "Bash(git push *)",
       "mcp__ide__getDiagnostics",
       "Bash(mvn spring-boot:run -q)",
-      "Bash(curl -s http://localhost:8080/api/settings/apikey)"
+      "Bash(curl -s http://localhost:8080/api/settings/apikey)",
+      "Bash(xargs ls *)",
+      "Bash(sort -k6,7)",
+      "Bash(./mvnw compile *)",
+      "Bash(mvn compile *)",
+      "Read(//usr/local/**)",
+      "Read(//opt/**)",
+      "Read(//Users/fengfan/**)",
+      "Bash(java -version)",
+      "Bash(brew list *)",
+      "Bash(port installed *)",
+      "Bash(cp /Users/fengfan/monolithic_arch_springboot/mvnw /Users/fengfan/interviewAssistant/backend/mvnw)",
+      "Bash(cp /Users/fengfan/monolithic_arch_springboot/.mvn/wrapper/maven-wrapper.properties /Users/fengfan/interviewAssistant/backend/.mvn/wrapper/maven-wrapper.properties)",
+      "Bash(chmod +x mvnw)",
+      "Bash(./mvnw test *)"
     ]
   }
 }

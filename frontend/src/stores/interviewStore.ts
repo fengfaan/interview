@@ -92,7 +92,7 @@ export const useInterviewStore = defineStore('interview', () => {
     isAnswerStreaming.value = false
   }
 
-  async function startSession() {
+  async function fetchQuestion(setStarted: boolean) {
     error.value = ''
     isLoading.value = true
     feedbackExpanded.value = false
@@ -108,7 +108,7 @@ export const useInterviewStore = defineStore('interview', () => {
         history: history.value,
       })
       currentQuestion.value = res
-      isStarted.value = true
+      if (setStarted) isStarted.value = true
       persist()
     } catch (e: any) {
       error.value = e.message || '生成问题失败'
@@ -117,28 +117,12 @@ export const useInterviewStore = defineStore('interview', () => {
     }
   }
 
+  async function startSession() {
+    await fetchQuestion(true)
+  }
+
   async function generateQuestion() {
-    error.value = ''
-    isLoading.value = true
-    feedbackExpanded.value = false
-    keywordHits.value = null
-    score.value = null
-    commentary.value = ''
-    followUpQuestion.value = ''
-    resetRecommendedAnswer()
-    try {
-      const res = await api.generateQuestion({
-        direction: direction.value,
-        level: level.value,
-        history: history.value,
-      })
-      currentQuestion.value = res
-      persist()
-    } catch (e: any) {
-      error.value = e.message || '生成问题失败'
-    } finally {
-      isLoading.value = false
-    }
+    await fetchQuestion(false)
   }
 
   async function submitAnswer() {

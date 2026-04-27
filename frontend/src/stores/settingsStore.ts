@@ -9,7 +9,6 @@ const PROVIDER_PRESETS = {
     docsUrl: 'https://open.bigmodel.cn/',
     docsLabel: '获取 API Key',
     modelPlaceholder: '例如 glm-4-flash',
-    modelOptions: ['glm-4-flash', 'glm-4-air', 'glm-4-airx', 'glm-4-plus', 'glm-z1-flash'],
     defaultModel: 'glm-4-flash',
     apiKeyHelp: '适合继续使用智谱的 OpenAI 兼容接口。',
   },
@@ -18,22 +17,6 @@ const PROVIDER_PRESETS = {
     docsUrl: 'https://openrouter.ai/docs/quick-start',
     docsLabel: '查看接入文档',
     modelPlaceholder: '例如 openrouter/free 或 qwen/qwen3-coder:free',
-    modelOptions: [
-      'openrouter/free',
-      'qwen/qwen3-coder:free',
-      'qwen/qwen3-next-80b-a3b-instruct:free',
-      'z-ai/glm-4.5-air:free',
-      'tencent/hy3-preview:free',
-      'nvidia/nemotron-3-super-120b-a12b:free',
-      'nvidia/nemotron-3-nano-30b-a3b:free',
-      'minimax/minimax-m2.5:free',
-      'google/gemma-4-31b-it:free',
-      'google/gemma-4-26b-a4b-it:free',
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'meta-llama/llama-3.2-3b-instruct:free',
-      'openai/gpt-oss-120b:free',
-      'openai/gpt-oss-20b:free',
-    ],
     defaultModel: 'openrouter/free',
     apiKeyHelp: '可直接使用 OpenAI 兼容接口；免费模型更适合低频测试和原型验证。',
   },
@@ -58,6 +41,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const currentModel = ref('')
   const defaultModel = ref('')
   const modelOptions = ref<string[]>([])
+  const providerModelOptions = ref<Record<string, string[]>>({})
+  const providerDefaultModels = ref<Record<string, string>>({})
   const modelDraft = ref('')
   const currentVaultPath = ref('')
   const vaultPathDraft = ref('')
@@ -81,8 +66,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const currentProviderMeta = computed(() => PROVIDER_PRESETS[currentProvider.value])
   const selectedProviderMeta = computed(() => PROVIDER_PRESETS[providerDraft.value])
   const displayModelOptions = computed(() => {
-    if (providerDraft.value === currentProvider.value) return modelOptions.value
-    return selectedProviderMeta.value.modelOptions
+    return providerModelOptions.value[providerDraft.value] || modelOptions.value
   })
   const hasPromptChanges = computed(() => promptDraft.value !== promptContent.value)
   const hasModelChanges = computed(() =>
@@ -133,6 +117,14 @@ export const useSettingsStore = defineStore('settings', () => {
       currentModel.value = res.model
       defaultModel.value = res.defaultModel
       modelOptions.value = res.options
+      providerModelOptions.value = {
+        ...providerModelOptions.value,
+        [currentProvider.value]: res.options,
+      }
+      providerDefaultModels.value = {
+        ...providerDefaultModels.value,
+        [currentProvider.value]: res.defaultModel,
+      }
       modelDraft.value = res.model
       await loadApiKeyForProvider(currentProvider.value)
     } catch (e: any) {
@@ -168,22 +160,42 @@ export const useSettingsStore = defineStore('settings', () => {
   function selectProvider(provider: string) {
     if (!(provider in PROVIDER_PRESETS)) return
     const next = provider as ProviderKey
-    const prevMeta = PROVIDER_PRESETS[providerDraft.value]
-    const nextMeta = PROVIDER_PRESETS[next]
+    const prevOptions = providerModelOptions.value[providerDraft.value] || modelOptions.value
+    const nextDefaultModel = providerDefaultModels.value[next] || PROVIDER_PRESETS[next].defaultModel
     const normalizedModel = modelDraft.value.trim()
     providerDraft.value = next
 
     const shouldReplaceModel =
       !normalizedModel ||
       normalizedModel === currentModel.value ||
-      normalizedModel === prevMeta.defaultModel ||
-      prevMeta.modelOptions.some((option) => option === normalizedModel)
+      normalizedModel === (providerDefaultModels.value[currentProvider.value] || defaultModel.value) ||
+      prevOptions.some((option) => option === normalizedModel)
 
     if (shouldReplaceModel) {
-      modelDraft.value = nextMeta.defaultModel
+      modelDraft.value = nextDefaultModel
     }
 
+    void loadModelOptionsForProvider(next, shouldReplaceModel)
     void loadApiKeyForProvider(next)
+  }
+
+  async function loadModelOptionsForProvider(provider: ProviderKey, applyDefault: boolean) {
+    try {
+      const res = await api.getModel(provider)
+      providerModelOptions.value = {
+        ...providerModelOptions.value,
+        [provider]: res.options,
+      }
+      providerDefaultModels.value = {
+        ...providerDefaultModels.value,
+        [provider]: res.defaultModel,
+      }
+      if (applyDefault && providerDraft.value === provider) {
+        modelDraft.value = res.defaultModel
+      }
+    } catch (e: any) {
+      error.value = e.message || '加载模型选项失败'
+    }
   }
 
   async function loadVaultConfig() {

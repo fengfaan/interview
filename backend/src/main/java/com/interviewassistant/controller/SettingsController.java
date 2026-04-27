@@ -13,6 +13,7 @@ import com.interviewassistant.dto.settings.PromptImproveResponse;
 import com.interviewassistant.dto.knowledge.VaultConfigRequest;
 import com.interviewassistant.dto.knowledge.VaultConfigResponse;
 import com.interviewassistant.dto.settings.PromptSaveRequest;
+import com.interviewassistant.service.AiGateway;
 import com.interviewassistant.service.PromptService;
 import com.interviewassistant.service.SettingsService;
 import jakarta.validation.Valid;
@@ -29,7 +30,7 @@ public class SettingsController {
 
     private final SettingsService settingsService;
     private final PromptService promptService;
-    private final AiConfig aiConfig;
+    private final AiGateway aiGateway;
 
     @GetMapping("/apikey")
     public ApiResponse<ApiKeyResponse> getApiKey(@RequestParam(value = "provider", required = false) String provider) {
@@ -48,19 +49,22 @@ public class SettingsController {
     }
 
     @GetMapping("/model")
-    public ApiResponse<ModelResponse> getModel() {
+    public ApiResponse<ModelResponse> getModel(@RequestParam(value = "provider", required = false) String provider) {
+        String responseProvider = provider == null || provider.isBlank()
+                ? settingsService.getCurrentProvider()
+                : AiConfig.normalizeProvider(provider);
         return ApiResponse.ok(new ModelResponse(
-                settingsService.getCurrentProvider(),
-                settingsService.getCurrentModel(),
-                settingsService.getDefaultModel(),
-                settingsService.getModelOptions()
+                responseProvider,
+                settingsService.getModelForProvider(responseProvider),
+                settingsService.getDefaultModel(responseProvider),
+                settingsService.getModelOptions(responseProvider)
         ));
     }
 
     @PostMapping("/model")
     public ApiResponse<ModelResponse> saveModel(@Valid @RequestBody ModelRequest request) {
         settingsService.saveModel(request.getProvider(), request.getModel());
-        return getModel();
+        return getModel(null);
     }
 
     @GetMapping("/prompts")
@@ -107,10 +111,7 @@ public class SettingsController {
                 "instruction", instruction,
                 "content", request.getContent()
         ));
-        String improved = aiConfig.getCurrentChatClient().prompt()
-                .user(prompt)
-                .call()
-                .content();
+        String improved = aiGateway.generateText(prompt);
         return ApiResponse.ok(new PromptImproveResponse(improved));
     }
 }

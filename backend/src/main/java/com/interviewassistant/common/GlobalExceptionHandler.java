@@ -3,6 +3,7 @@ package com.interviewassistant.common;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -23,6 +24,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.fail("BAD_REQUEST", msg));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableMessage(HttpMessageNotReadableException e) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.fail("BAD_REQUEST", "请求参数格式错误，请检查枚举值和 JSON 结构"));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArg(IllegalArgumentException e) {
         return ResponseEntity.badRequest().body(ApiResponse.fail("BAD_REQUEST", e.getMessage()));
@@ -38,6 +45,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handlePromptLoad(PromptLoadException e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.fail("PROMPT_LOAD_ERROR", e.getMessage()));
+    }
+
+    @ExceptionHandler(AiResponseFormatException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAiResponseFormat(AiResponseFormatException e) {
+        log.warn("AI response format error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.fail(e.getErrorCode(), e.getUserMessage()));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

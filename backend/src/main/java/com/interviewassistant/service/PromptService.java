@@ -13,11 +13,16 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class PromptService {
 
     private final Path promptDirectory;
+    private final Map<String, CachedPrompt> cache = new ConcurrentHashMap<>();
+
+    private record CachedPrompt(String content, long lastModifiedMillis) {
+    }
 
     public PromptService(@Value("${app.prompts.directory:prompts}") String promptDirectory) {
         Path configuredDirectory = Path.of(promptDirectory).toAbsolutePath().normalize();
@@ -33,7 +38,15 @@ public class PromptService {
     public String load(String relativePath) {
         Path path = resolvePromptPath(relativePath);
         try {
-            return Files.readString(path, StandardCharsets.UTF_8);
+            long lastModified = Files.getLastModifiedTime(path).toMillis();
+            String cacheKey = promptDirectory.relativize(path).toString().replace('\\', '/');
+            CachedPrompt cached = cache.get(cacheKey);
+            if (cached != null && cached.lastModifiedMillis() == lastModified) {
+                return cached.content();
+            }
+            String content = Files.readString(path, StandardCharsets.UTF_8);
+            cache.put(cacheKey, new CachedPrompt(content, lastModified));
+            return content;
         } catch (NoSuchFileException e) {
             throw new PromptLoadException("提示词文件不存在: " + path, e);
         } catch (IOException e) {
@@ -73,6 +86,7 @@ public class PromptService {
         }
         try {
             Files.writeString(path, content, StandardCharsets.UTF_8);
+            cache.remove(promptDirectory.relativize(path).toString().replace('\\', '/'));
         } catch (IOException e) {
             throw new PromptLoadException("保存提示词文件失败: " + path, e);
         }

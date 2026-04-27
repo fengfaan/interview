@@ -1,8 +1,9 @@
 package com.interviewassistant.service;
 
-import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.dto.interview.BatchQuestionItem;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interviewassistant.dto.interview.InterviewDirection;
+import com.interviewassistant.dto.interview.InterviewLevel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.ai.chat.client.ChatClient;
 
 import java.util.List;
 
@@ -29,35 +29,19 @@ import static org.mockito.Mockito.*;
 class InterviewAiServiceBatchTest {
 
     @Mock
-    private AiConfig aiConfig;
+    private AiGateway aiGateway;
 
     @Mock
     private PromptService promptService;
-
-    @Mock
-    private ChatClient chatClient;
-
-    @Mock
-    private ChatClient.ChatClientRequestSpec requestSpec;
-
-    @Mock
-    private ChatClient.CallResponseSpec callResponseSpec;
 
     private InterviewAiService service;
 
     @BeforeEach
     void setUp() {
-        // Mock the ChatClient chain: aiConfig.getCurrentChatClient() → chatClient.prompt() → requestSpec
-        // requestSpec.system() → requestSpec, requestSpec.user() → requestSpec, requestSpec.call() → callResponseSpec
-        when(aiConfig.getCurrentChatClient()).thenReturn(chatClient);
-        when(chatClient.prompt()).thenReturn(requestSpec);
-        when(requestSpec.system(anyString())).thenReturn(requestSpec);
-        when(requestSpec.user(anyString())).thenReturn(requestSpec);
-        when(requestSpec.call()).thenReturn(callResponseSpec);
         when(promptService.load("interview/system.md")).thenReturn("You are an interviewer.");
         when(promptService.render(eq("interview/batch-question.md"), anyMap())).thenReturn("rendered prompt");
 
-        service = new InterviewAiService(aiConfig, promptService, new ObjectMapper());
+        service = new InterviewAiService(aiGateway, promptService, new ObjectMapper());
     }
 
     @Test
@@ -74,14 +58,14 @@ class InterviewAiServiceBatchTest {
           ]
         }
         """;
-        when(callResponseSpec.content()).thenReturn(aiResponse);
+        when(aiGateway.generateText(anyString(), anyString())).thenReturn(aiResponse);
 
-        List<BatchQuestionItem> result = service.generateBatchQuestions("GO_BACKEND", "BASIC", 5);
+        List<BatchQuestionItem> result = service.generateBatchQuestions(InterviewDirection.GO_BACKEND, InterviewLevel.BASIC, 5);
 
         assertEquals(5, result.size());
         assertEquals("batch_001", result.get(0).getQuestionId());
         assertEquals("batch_005", result.get(4).getQuestionId());
-        verify(chatClient, times(1)).prompt(); // 5 questions = 1 batch
+        verify(aiGateway, times(1)).generateText(anyString(), anyString()); // 5 questions = 1 batch
     }
 
     @Test
@@ -120,14 +104,14 @@ class InterviewAiServiceBatchTest {
           ]
         }
         """;
-        when(callResponseSpec.content()).thenReturn(batch1Response, batch2Response, batch3Response);
+        when(aiGateway.generateText(anyString(), anyString())).thenReturn(batch1Response, batch2Response, batch3Response);
 
-        List<BatchQuestionItem> result = service.generateBatchQuestions("GO_BACKEND", "BASIC", 15);
+        List<BatchQuestionItem> result = service.generateBatchQuestions(InterviewDirection.GO_BACKEND, InterviewLevel.BASIC, 15);
 
         assertEquals(15, result.size());
         assertEquals("batch_001", result.get(0).getQuestionId());
         assertEquals("batch_015", result.get(14).getQuestionId());
-        verify(chatClient, times(3)).prompt(); // 15 questions = 3 batches (5 + 5 + 5)
+        verify(aiGateway, times(3)).generateText(anyString(), anyString()); // 15 questions = 3 batches (5 + 5 + 5)
     }
 
     @Test
@@ -154,12 +138,12 @@ class InterviewAiServiceBatchTest {
           ]
         }
         """;
-        when(callResponseSpec.content()).thenReturn(batch1Response, batch2Response);
+        when(aiGateway.generateText(anyString(), anyString())).thenReturn(batch1Response, batch2Response);
 
-        List<BatchQuestionItem> result = service.generateBatchQuestions("REACT_FRONTEND", "DEEP_PRINCIPLE", 10);
+        List<BatchQuestionItem> result = service.generateBatchQuestions(InterviewDirection.REACT_FRONTEND, InterviewLevel.DEEP_PRINCIPLE, 10);
 
         assertEquals(10, result.size());
-        verify(chatClient, times(2)).prompt();
+        verify(aiGateway, times(2)).generateText(anyString(), anyString());
     }
 
     @Test
@@ -172,9 +156,9 @@ class InterviewAiServiceBatchTest {
           ]
         }
         """;
-        when(callResponseSpec.content()).thenReturn(aiResponse);
+        when(aiGateway.generateText(anyString(), anyString())).thenReturn(aiResponse);
 
-        List<BatchQuestionItem> result = service.generateBatchQuestions("GO_BACKEND", "BASIC", 2);
+        List<BatchQuestionItem> result = service.generateBatchQuestions(InterviewDirection.GO_BACKEND, InterviewLevel.BASIC, 2);
 
         assertEquals("batch_001", result.get(0).getQuestionId());
         assertEquals("batch_002", result.get(1).getQuestionId());
@@ -185,19 +169,19 @@ class InterviewAiServiceBatchTest {
         String aiResponse = """
         {"questions": [{"question": "Q1", "answer": "A1", "keywords": []}]}
         """;
-        when(callResponseSpec.content()).thenReturn(aiResponse);
+        when(aiGateway.generateText(anyString(), anyString())).thenReturn(aiResponse);
         when(promptService.render(eq("interview/batch-question.md"), anyMap())).thenReturn("rendered prompt");
 
-        service.generateBatchQuestions("GO_BACKEND", "BASIC", 1);
+        service.generateBatchQuestions(InterviewDirection.GO_BACKEND, InterviewLevel.BASIC, 1);
 
         verify(promptService).render(eq("interview/batch-question.md"), anyMap());
     }
 
     @Test
     void generateBatchQuestions_returnsEmptyWhenCountIsZero() {
-        List<BatchQuestionItem> result = service.generateBatchQuestions("GO_BACKEND", "BASIC", 0);
+        List<BatchQuestionItem> result = service.generateBatchQuestions(InterviewDirection.GO_BACKEND, InterviewLevel.BASIC, 0);
 
         assertTrue(result.isEmpty());
-        verifyNoInteractions(chatClient);
+        verifyNoInteractions(aiGateway);
     }
 }

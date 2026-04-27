@@ -1,10 +1,8 @@
 package com.interviewassistant.service;
 
-import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.dto.resume.AnalyzeResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -27,7 +25,7 @@ public class ResumeAiService {
             "Java", "Spring", "Vue", "React", "Go", "Python", "MySQL", "Redis", "架构", "系统"
     };
 
-    private final AiConfig aiConfig;
+    private final AiGateway aiGateway;
     private final PromptService promptService;
 
     public AnalyzeResponse analyze(String jobDescription, String resume) {
@@ -38,14 +36,8 @@ public class ResumeAiService {
                 "resume", resume
         ));
 
-        var converter = new BeanOutputConverter<>(AnalyzeResponse.class);
-        String response = aiConfig.getCurrentChatClient().prompt()
-                .system(promptService.load("resume/system.md"))
-                .user(userMessage + "\n\n" + converter.getFormat())
-                .call()
-                .content();
-
-        return converter.convert(response);
+        return aiGateway.generateJson(
+                promptService.load("resume/system.md"), userMessage, AnalyzeResponse.class).value();
     }
 
     public String buildRewritePrompt(String jobDescription, String resume,

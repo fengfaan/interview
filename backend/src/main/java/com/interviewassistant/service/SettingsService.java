@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
@@ -56,6 +57,8 @@ public class SettingsService {
             "openai/gpt-oss-20b:free"
     );
     private final ReentrantLock fileLock = new ReentrantLock();
+    private final ConcurrentHashMap<String, String> settingsCache = new ConcurrentHashMap<>();
+    private volatile boolean settingsLoaded = false;
 
     @EventListener(ApplicationReadyEvent.class)
     void init() {
@@ -106,15 +109,24 @@ public class SettingsService {
     }
 
     public String getCurrentModel() {
+        return getModelForProvider(getCurrentProvider());
+    }
+
+    public String getModelForProvider(String provider) {
+        String normalizedProvider = AiConfig.normalizeProvider(provider);
         String fromFile = readPropertyFromFile(MODEL_PROP);
-        if (fromFile != null && !fromFile.isBlank()) return fromFile.trim();
+        if (normalizedProvider.equals(getCurrentProvider()) && fromFile != null && !fromFile.isBlank()) return fromFile.trim();
         String fromEnv = environment.getProperty("spring.ai.openai.chat.options.model");
-        if (fromEnv != null && !fromEnv.isBlank()) return fromEnv.trim();
-        return AiConfig.defaultModelFor(getCurrentProvider());
+        if (normalizedProvider.equals(getCurrentProvider()) && fromEnv != null && !fromEnv.isBlank()) return fromEnv.trim();
+        return AiConfig.defaultModelFor(normalizedProvider);
     }
 
     public String getDefaultModel() {
         return AiConfig.defaultModelFor(getCurrentProvider());
+    }
+
+    public String getDefaultModel(String provider) {
+        return AiConfig.defaultModelFor(provider);
     }
 
     public List<String> getModelOptions() {
@@ -182,13 +194,10 @@ public class SettingsService {
     private void saveSetting(String key, String value) {
         fileLock.lock();
         try {
+            ensureSettingsLoadedLocked();
             Path path = settingsPath();
             Properties props = new Properties();
-            if (Files.exists(path)) {
-                try (var is = Files.newInputStream(path)) {
-                    props.load(is);
-                }
-            }
+            props.putAll(settingsCache);
             props.setProperty(key, value);
             Path parent = path.getParent();
             if (parent != null) {
@@ -197,6 +206,7 @@ public class SettingsService {
             try (var os = Files.newOutputStream(path)) {
                 props.store(os, "Interview Assistant Settings");
             }
+            settingsCache.put(key, value);
             log.info("Setting saved: {} -> {}", key, path);
         } catch (IOException e) {
             throw new RuntimeException("Failed to save setting: " + e.getMessage(), e);
@@ -206,20 +216,40 @@ public class SettingsService {
     }
 
     private String readPropertyFromFile(String key) {
-        Path path = settingsPath();
-        if (!Files.exists(path)) return null;
+        if (!settingsLoaded) {
+            loadSettingsIntoCache();
+        }
+        return settingsCache.get(key);
+    }
+
+    private void loadSettingsIntoCache() {
         fileLock.lock();
+        try {
+            ensureSettingsLoadedLocked();
+        } finally {
+            fileLock.unlock();
+        }
+    }
+
+    private void ensureSettingsLoadedLocked() {
+        if (settingsLoaded) {
+            return;
+        }
+        Path path = settingsPath();
+        if (!Files.exists(path)) {
+            settingsLoaded = true;
+            return;
+        }
         try {
             Properties props = new Properties();
             try (var is = Files.newInputStream(path)) {
                 props.load(is);
             }
-            return props.getProperty(key);
+            props.forEach((k, v) -> settingsCache.put(String.valueOf(k), String.valueOf(v)));
+            settingsLoaded = true;
         } catch (IOException e) {
             log.warn("Failed to read settings file", e);
-            return null;
-        } finally {
-            fileLock.unlock();
+            settingsLoaded = true;
         }
     }
 

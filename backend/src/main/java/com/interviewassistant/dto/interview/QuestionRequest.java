@@ -9,10 +9,10 @@ import java.util.List;
 @Data
 public class QuestionRequest {
     @NotNull(message = "direction is required")
-    private String direction;
+    private InterviewDirection direction;
 
     @NotNull(message = "level is required")
-    private String level;
+    private InterviewLevel level;
 
     private List<HistoryEntry> history = new ArrayList<>();
 }

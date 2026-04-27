@@ -1,6 +1,7 @@
 package com.interviewassistant.dto.interview;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -8,11 +9,11 @@ import java.util.List;
 
 @Data
 public class FeedbackRequest {
-    @NotBlank(message = "direction is required")
-    private String direction;
+    @NotNull(message = "direction is required")
+    private InterviewDirection direction;
 
-    @NotBlank(message = "level is required")
-    private String level;
+    @NotNull(message = "level is required")
+    private InterviewLevel level;
 
     @NotBlank(message = "question is required")
     private String question;

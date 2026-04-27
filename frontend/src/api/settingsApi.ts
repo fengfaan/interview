@@ -29,8 +29,9 @@ export async function saveApiKey(request: ApiKeyRequest): Promise<void> {
   if (!json.success) throw new Error(json.message || '保存失败')
 }
 
-export async function getModel(): Promise<ModelResponse> {
-  const res = await fetch(`${API_BASE}/model`)
+export async function getModel(provider?: string): Promise<ModelResponse> {
+  const query = provider ? `?provider=${encodeURIComponent(provider)}` : ''
+  const res = await fetch(`${API_BASE}/model${query}`)
   const json = await res.json()
   if (!json.success) throw new Error(json.message || '获取模型设置失败')
   return json.data

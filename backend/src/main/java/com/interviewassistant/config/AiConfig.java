@@ -9,16 +9,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.reactive.JdkClientHttpConnector;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 @Slf4j
 @Configuration
@@ -99,10 +103,13 @@ public class AiConfig {
 
         RestClient.Builder restClientBuilder = RestClient.builder()
                 .requestFactory(requestFactoryFor(normalizedProvider));
+        WebClient.Builder webClientBuilder = WebClient.builder();
         if (PROVIDER_OPENROUTER.equals(normalizedProvider)) {
             restClientBuilder.defaultHeader("Accept-Encoding", "identity");
-            restClientBuilder.defaultHeader("Connection", "close");
             restClientBuilder.defaultHeader("X-Title", "Interview Assistant");
+            webClientBuilder.defaultHeader("Accept-Encoding", "identity");
+            webClientBuilder.defaultHeader("X-Title", "Interview Assistant");
+            webClientBuilder.clientConnector(new JdkClientHttpConnector(httpClientForOpenRouter()));
         }
 
         OpenAiApi api = OpenAiApi.builder()
@@ -110,6 +117,7 @@ public class AiConfig {
                 .baseUrl(baseUrlFor(normalizedProvider))
                 .completionsPath(completionsPathFor(normalizedProvider))
                 .restClientBuilder(restClientBuilder)
+                .webClientBuilder(webClientBuilder)
                 .build();
 
         OpenAiChatModel.Builder modelBuilder = OpenAiChatModel.builder()
@@ -175,6 +183,16 @@ public class AiConfig {
         factory.setConnectTimeout(CONNECT_TIMEOUT_MS);
         factory.setConnectionRequestTimeout(CONNECT_TIMEOUT_MS);
         return factory;
+    }
+
+    private HttpClient httpClientForOpenRouter() {
+        HttpClient.Builder builder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
+        if (openRouterProxy != null && !openRouterProxy.isBlank()) {
+            URI proxyUri = parseProxyUri(openRouterProxy);
+            builder.proxy(java.net.ProxySelector.of(new InetSocketAddress(proxyUri.getHost(), proxyUri.getPort())));
+        }
+        return builder.build();
     }
 
     private RetryTemplate openRouterRetryTemplate() {

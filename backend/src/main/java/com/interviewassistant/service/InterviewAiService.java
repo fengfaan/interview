@@ -1,6 +1,5 @@
 package com.interviewassistant.service;
 
-import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.common.AiErrorUtils;
 import com.interviewassistant.common.JsonOutputUtils;
 import com.interviewassistant.dto.interview.*;
@@ -10,8 +9,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -23,7 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InterviewAiService {
 
-    private final AiConfig aiConfig;
+    private final AiGateway aiGateway;
     private final PromptService promptService;
     private final ObjectMapper objectMapper;
     private final AtomicInteger questionCounter = new AtomicInteger(1);
@@ -31,7 +28,7 @@ public class InterviewAiService {
     private static final int MAX_BATCH_ATTEMPTS = 3;
     private static final long INITIAL_BATCH_RETRY_DELAY_MS = 1_200L;
 
-    public QuestionResponse generateQuestion(String direction, String level, List<HistoryEntry> history) {
+    public QuestionResponse generateQuestion(InterviewDirection direction, InterviewLevel level, List<HistoryEntry> history) {
         String historySummary = history == null || history.isEmpty() ? "无（首次提问）"
                 : history.stream()
                 .map(h -> "Q: " + h.getQuestion() + (h.isSkipped() ? " (已跳过)" : ""))
@@ -43,27 +40,21 @@ public class InterviewAiService {
                 "history", historySummary
         ));
 
-        var converter = new BeanOutputConverter<>(QuestionAiResponse.class);
-        ChatResponse response = aiConfig.getCurrentChatClient().prompt()
-                .system(promptService.load("interview/system.md"))
-                .user(userMessage + "\n\n" + converter.getFormat())
-                .call()
-                .chatResponse();
-
-        QuestionAiResponse aiResult = converter.convert(JsonOutputUtils.extractJson(response.getResult().getOutput().getText()));
+        AiGateway.JsonResult<QuestionAiResponse> result = aiGateway.generateJson(
+                promptService.load("interview/system.md"), userMessage, QuestionAiResponse.class);
+        QuestionAiResponse aiResult = result.value();
         if (aiResult.getQuestionId() == null) {
             aiResult.setQuestionId("q_" + String.format("%03d", questionCounter.getAndIncrement()));
         }
-        String actualModel = response.getMetadata() != null ? response.getMetadata().getModel() : null;
         return new QuestionResponse(
                 aiResult.getQuestionId(),
                 aiResult.getQuestion(),
                 aiResult.getExpectedKeywords(),
-                actualModel
+                result.actualModel()
         );
     }
 
-    public FeedbackResponse analyzeFeedback(String direction, String level, String question,
+    public FeedbackResponse analyzeFeedback(InterviewDirection direction, InterviewLevel level, String question,
                                              String answer, List<String> expectedKeywords) {
         String userMessage = promptService.render("interview/feedback-json.md", Map.of(
                 "direction", InterviewLabels.directionLabel(direction),
@@ -73,17 +64,11 @@ public class InterviewAiService {
                 "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()
         ));
 
-        var converter = new BeanOutputConverter<>(FeedbackResponse.class);
-        String response = aiConfig.getCurrentChatClient().prompt()
-                .system(promptService.load("interview/system.md"))
-                .user(userMessage + "\n\n" + converter.getFormat())
-                .call()
-                .content();
-
-        return converter.convert(JsonOutputUtils.extractJson(response));
+        return aiGateway.generateJson(
+                promptService.load("interview/system.md"), userMessage, FeedbackResponse.class).value();
     }
 
-    public String buildFeedbackStreamPrompt(String direction, String level, String question,
+    public String buildFeedbackStreamPrompt(InterviewDirection direction, InterviewLevel level, String question,
                                              String answer, List<String> expectedKeywords,
                                              String followUpQuestion) {
         return promptService.render("interview/feedback-stream.md", Map.of(
@@ -96,7 +81,7 @@ public class InterviewAiService {
         ));
     }
 
-    public String buildRecommendedAnswerPrompt(String direction, String level, String question,
+    public String buildRecommendedAnswerPrompt(InterviewDirection direction, InterviewLevel level, String question,
                                                List<String> expectedKeywords) {
         return promptService.render("interview/recommended-answer.md", Map.of(
                 "direction", InterviewLabels.directionLabel(direction),
@@ -106,7 +91,7 @@ public class InterviewAiService {
         ));
     }
 
-    public List<BatchQuestionItem> generateBatchQuestions(String direction, String level, int count) {
+    public List<BatchQuestionItem> generateBatchQuestions(InterviewDirection direction, InterviewLevel level, int count) {
         if (count <= 0) {
             return Collections.emptyList();
         }
@@ -149,7 +134,7 @@ public class InterviewAiService {
         return allQuestions;
     }
 
-    public List<BatchQuestionItem> generateBatchQuestionChunk(String direction, String level,
+    public List<BatchQuestionItem> generateBatchQuestionChunk(InterviewDirection direction, InterviewLevel level,
                                                               int count, int batchNumber,
                                                               int startIndex) {
         if (count <= 0) {
@@ -187,14 +172,8 @@ public class InterviewAiService {
         for (int attempt = 1; attempt <= MAX_BATCH_ATTEMPTS; attempt++) {
             long startedAt = System.currentTimeMillis();
             try {
-                log.info("Batch {} attempt {}/{} started. provider={}, model={}",
-                        batchNumber, attempt, MAX_BATCH_ATTEMPTS,
-                        aiConfig.getCurrentProvider(), aiConfig.getCurrentModel());
-                String response = aiConfig.getCurrentChatClient().prompt()
-                        .system(promptService.load("interview/system.md"))
-                        .user(userMessage)
-                        .call()
-                        .content();
+                log.info("Batch {} attempt {}/{} started", batchNumber, attempt, MAX_BATCH_ATTEMPTS);
+                String response = aiGateway.generateText(promptService.load("interview/system.md"), userMessage);
                 List<BatchQuestionItem> items = parseCompactBatch(response);
                 log.info("Batch {} attempt {}/{} finished in {} ms, parsed {} question(s)",
                         batchNumber, attempt, MAX_BATCH_ATTEMPTS,

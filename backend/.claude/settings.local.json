@@ -23,7 +23,9 @@
       "Bash(javap -constants /tmp/org/springframework/ai/openai/api/OpenAiApi.class)",
       "Bash(javap -constants org/springframework/ai/openai/api/OpenAiApi.class)",
       "Bash(javap -public org/springframework/ai/openai/OpenAiChatModel.class)",
-      "Bash(javap -public org/springframework/ai/openai/api/OpenAiApi.class)"
+      "Bash(javap -public org/springframework/ai/openai/api/OpenAiApi.class)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
