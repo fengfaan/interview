@@ -178,6 +178,14 @@
               <span v-else class="material-symbols-outlined text-base">bookmark_add</span>
               {{ saveAnswerState === 'saving' ? '保存中...' : saveAnswerState === 'saved' ? '已保存' : '保存到知识库' }}
             </button>
+            <button
+              v-if="store.recommendedAnswer && !store.isAnswerStreaming"
+              @click="deepDiveStore.openDeepDive('RECOMMENDED_ANSWER', store.recommendedAnswer)"
+              class="text-sm font-medium text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors flex items-center gap-1"
+            >
+              <span class="material-symbols-outlined text-base">forum</span>
+              深度追问
+            </button>
           </div>
         </div>
         <div class="p-6">
@@ -287,11 +295,19 @@
                 <span class="material-symbols-outlined text-base">psychology</span>
                 继续挑战
               </button>
+              <button
+                @click="deepDiveStore.openDeepDive('FEEDBACK', store.commentary)"
+                class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <span class="material-symbols-outlined text-base">forum</span>
+                深度追问
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <DeepDiveDrawer />
   </div>
 </template>
 
@@ -301,9 +317,12 @@ import { useInterviewStore } from '../stores/interviewStore'
 import { useKnowledgeStore } from '../stores/knowledgeStore'
 import { DIRECTIONS, LEVELS } from '../types/interview'
 import { renderMarkdown } from '../utils/markdown'
+import { useDeepDiveStore } from '../stores/deepDiveStore'
+import DeepDiveDrawer from '../components/DeepDiveDrawer.vue'
 
 const store = useInterviewStore()
 const knowledgeStore = useKnowledgeStore()
+const deepDiveStore = useDeepDiveStore()
 const copiedAnswer = ref(false)
 const saveFeedbackState = ref<'idle' | 'saving' | 'saved'>('idle')
 const saveAnswerState = ref<'idle' | 'saving' | 'saved'>('idle')
