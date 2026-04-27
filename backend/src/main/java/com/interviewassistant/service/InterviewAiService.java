@@ -91,6 +91,22 @@ public class InterviewAiService {
         ));
     }
 
+    public String buildDeepDivePrompt(String question, List<String> expectedKeywords,
+                                       DeepDiveContextType contextType, String contextContent,
+                                       List<ChatMessage> messages) {
+        String history = messages.stream()
+                .map(m -> (m.getRole() == ChatRole.USER ? "候选人" : "教练") + "：" + m.getContent())
+                .collect(Collectors.joining("\n\n"));
+
+        return promptService.render("interview/deep-dive.md", Map.of(
+                "question", question,
+                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of(),
+                "contextType", contextType == DeepDiveContextType.RECOMMENDED_ANSWER ? "推荐答案" : "反馈点评",
+                "contextContent", contextContent,
+                "history", history
+        ));
+    }
+
     public List<BatchQuestionItem> generateBatchQuestions(InterviewDirection direction, InterviewLevel level, int count) {
         if (count <= 0) {
             return Collections.emptyList();

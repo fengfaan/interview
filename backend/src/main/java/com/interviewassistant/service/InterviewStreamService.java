@@ -1,6 +1,9 @@
 package com.interviewassistant.service;
 
 import com.interviewassistant.common.SseUtils;
+import com.interviewassistant.dto.interview.ChatMessage;
+import com.interviewassistant.dto.interview.DeepDiveContextType;
+import com.interviewassistant.dto.interview.DeepDiveRequest;
 import com.interviewassistant.dto.interview.FeedbackRequest;
 import com.interviewassistant.dto.interview.RecommendedAnswerRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -54,6 +57,22 @@ public class InterviewStreamService {
                 prompt,
                 "推荐答案生成失败",
                 "启动推荐答案生成失败"
+        ));
+        return emitter;
+    }
+
+    public SseEmitter streamDeepDive(DeepDiveRequest request) {
+        SseEmitter emitter = SseUtils.createShortEmitter();
+        String prompt = interviewService.buildDeepDivePrompt(
+                request.getQuestion(), request.getExpectedKeywords(),
+                request.getContextType(), request.getContextContent(),
+                request.getMessages());
+        executor.execute(() -> aiGateway.streamText(
+                emitter,
+                promptService.load("interview/system.md"),
+                prompt,
+                "深度追问生成失败",
+                "启动深度追问失败"
         ));
         return emitter;
     }
