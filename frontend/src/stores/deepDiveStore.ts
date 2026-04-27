@@ -13,11 +13,13 @@ export const useDeepDiveStore = defineStore('deepDive', () => {
   const streamingContent = ref('')
 
   function openDeepDive(type: DeepDiveContextType, content: string) {
+    if (sourceType.value !== type || contextContent.value !== content) {
+      messages.value = []
+      streamingContent.value = ''
+    }
     sourceType.value = type
     contextContent.value = content
-    messages.value = []
     inputText.value = ''
-    streamingContent.value = ''
     isStreaming.value = false
     isOpen.value = true
   }

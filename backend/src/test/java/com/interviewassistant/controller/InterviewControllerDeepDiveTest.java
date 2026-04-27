@@ -10,6 +10,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.interviewassistant.dto.interview.ChatMessage;
+import com.interviewassistant.dto.interview.ChatRole;
+
+import java.util.List;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,7 +52,10 @@ class InterviewControllerDeepDiveTest {
         request.setQuestion("什么是B+树");
         request.setContextType(com.interviewassistant.dto.interview.DeepDiveContextType.RECOMMENDED_ANSWER);
         request.setContextContent("B+树索引是...");
-        request.setMessages(java.util.List.of());
+        ChatMessage msg = new ChatMessage();
+        msg.setRole(ChatRole.USER);
+        msg.setContent("叶子节点和内节点的区别？");
+        request.setMessages(List.of(msg));
 
         SseEmitter result = controller.streamDeepDive(request);
 
@@ -64,7 +71,10 @@ class InterviewControllerDeepDiveTest {
         request.setQuestion("Q");
         request.setContextType(com.interviewassistant.dto.interview.DeepDiveContextType.FEEDBACK);
         request.setContextContent("feedback text");
-        request.setMessages(java.util.List.of());
+        ChatMessage msg = new ChatMessage();
+        msg.setRole(ChatRole.USER);
+        msg.setContent("追问");
+        request.setMessages(List.of(msg));
 
         controller.streamDeepDive(request);
 
