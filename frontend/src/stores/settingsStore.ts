@@ -3,6 +3,44 @@ import { computed, ref } from 'vue'
 import * as api from '../api/settingsApi'
 import type { PromptFile } from '../types/settings'
 
+const PROVIDER_PRESETS = {
+  zhipu: {
+    label: '智谱 AI',
+    docsUrl: 'https://open.bigmodel.cn/',
+    docsLabel: '获取 API Key',
+    modelPlaceholder: '例如 glm-4-flash',
+    modelOptions: ['glm-4-flash', 'glm-4-air', 'glm-4-airx', 'glm-4-plus', 'glm-z1-flash'],
+    defaultModel: 'glm-4-flash',
+    apiKeyHelp: '适合继续使用智谱的 OpenAI 兼容接口。',
+  },
+  openrouter: {
+    label: 'OpenRouter',
+    docsUrl: 'https://openrouter.ai/docs/quick-start',
+    docsLabel: '查看接入文档',
+    modelPlaceholder: '例如 openrouter/free 或 qwen/qwen3-coder:free',
+    modelOptions: [
+      'openrouter/free',
+      'qwen/qwen3-coder:free',
+      'qwen/qwen3-next-80b-a3b-instruct:free',
+      'z-ai/glm-4.5-air:free',
+      'tencent/hy3-preview:free',
+      'nvidia/nemotron-3-super-120b-a12b:free',
+      'nvidia/nemotron-3-nano-30b-a3b:free',
+      'minimax/minimax-m2.5:free',
+      'google/gemma-4-31b-it:free',
+      'google/gemma-4-26b-a4b-it:free',
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'meta-llama/llama-3.2-3b-instruct:free',
+      'openai/gpt-oss-120b:free',
+      'openai/gpt-oss-20b:free',
+    ],
+    defaultModel: 'openrouter/free',
+    apiKeyHelp: '可直接使用 OpenAI 兼容接口；免费模型更适合低频测试和原型验证。',
+  },
+} as const
+
+type ProviderKey = keyof typeof PROVIDER_PRESETS
+
 export const useSettingsStore = defineStore('settings', () => {
   const maskedKey = ref('')
   const configured = ref(false)
@@ -15,6 +53,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const isPromptImproving = ref(false)
   const error = ref('')
   const successMessage = ref('')
+  const currentProvider = ref<ProviderKey>('zhipu')
+  const providerDraft = ref<ProviderKey>('zhipu')
   const currentModel = ref('')
   const defaultModel = ref('')
   const modelOptions = ref<string[]>([])
@@ -35,15 +75,30 @@ export const useSettingsStore = defineStore('settings', () => {
     promptFiles.value.find((file) => file.path === selectedPromptPath.value) || null,
   )
 
+  const providerOptions = computed(() =>
+    Object.entries(PROVIDER_PRESETS).map(([value, meta]) => ({ value, label: meta.label })),
+  )
+  const currentProviderMeta = computed(() => PROVIDER_PRESETS[currentProvider.value])
+  const selectedProviderMeta = computed(() => PROVIDER_PRESETS[providerDraft.value])
+  const displayModelOptions = computed(() => {
+    if (providerDraft.value === currentProvider.value) return modelOptions.value
+    return selectedProviderMeta.value.modelOptions
+  })
   const hasPromptChanges = computed(() => promptDraft.value !== promptContent.value)
-  const hasModelChanges = computed(() => modelDraft.value.trim() !== currentModel.value)
+  const hasModelChanges = computed(() =>
+    modelDraft.value.trim() !== currentModel.value || providerDraft.value !== currentProvider.value,
+  )
   const hasVaultChanges = computed(() => vaultPathDraft.value.trim() !== currentVaultPath.value)
 
   async function loadApiKey() {
+    await loadApiKeyForProvider(providerDraft.value)
+  }
+
+  async function loadApiKeyForProvider(provider: ProviderKey) {
     error.value = ''
     isLoading.value = true
     try {
-      const res = await api.getApiKeyMasked()
+      const res = await api.getApiKeyMasked(provider)
       maskedKey.value = res.masked
       configured.value = res.configured
     } catch (e: any) {
@@ -58,9 +113,9 @@ export const useSettingsStore = defineStore('settings', () => {
     successMessage.value = ''
     isSaving.value = true
     try {
-      await api.saveApiKey({ apiKey: key })
-      successMessage.value = 'API Key 保存成功，已立即生效'
-      await loadApiKey()
+      await api.saveApiKey({ provider: providerDraft.value, apiKey: key })
+      successMessage.value = `${selectedProviderMeta.value.label} API Key 保存成功`
+      await loadApiKeyForProvider(providerDraft.value)
     } catch (e: any) {
       error.value = e.message || '保存失败'
     } finally {
@@ -73,10 +128,13 @@ export const useSettingsStore = defineStore('settings', () => {
     isModelLoading.value = true
     try {
       const res = await api.getModel()
+      currentProvider.value = (res.provider in PROVIDER_PRESETS ? res.provider : 'zhipu') as ProviderKey
+      providerDraft.value = currentProvider.value
       currentModel.value = res.model
       defaultModel.value = res.defaultModel
       modelOptions.value = res.options
       modelDraft.value = res.model
+      await loadApiKeyForProvider(currentProvider.value)
     } catch (e: any) {
       error.value = e.message || '加载模型设置失败'
     } finally {
@@ -91,17 +149,41 @@ export const useSettingsStore = defineStore('settings', () => {
     successMessage.value = ''
     isModelSaving.value = true
     try {
-      const res = await api.saveModel({ model })
+      const res = await api.saveModel({ provider: providerDraft.value, model })
+      currentProvider.value = (res.provider in PROVIDER_PRESETS ? res.provider : 'zhipu') as ProviderKey
+      providerDraft.value = currentProvider.value
       currentModel.value = res.model
       defaultModel.value = res.defaultModel
       modelOptions.value = res.options
       modelDraft.value = res.model
-      successMessage.value = '模型设置已保存，后续 AI 请求会使用新模型'
+      successMessage.value = 'AI 渠道与模型已保存，后续 AI 请求会使用新配置'
+      await loadApiKeyForProvider(currentProvider.value)
     } catch (e: any) {
       error.value = e.message || '保存模型失败'
     } finally {
       isModelSaving.value = false
     }
+  }
+
+  function selectProvider(provider: string) {
+    if (!(provider in PROVIDER_PRESETS)) return
+    const next = provider as ProviderKey
+    const prevMeta = PROVIDER_PRESETS[providerDraft.value]
+    const nextMeta = PROVIDER_PRESETS[next]
+    const normalizedModel = modelDraft.value.trim()
+    providerDraft.value = next
+
+    const shouldReplaceModel =
+      !normalizedModel ||
+      normalizedModel === currentModel.value ||
+      normalizedModel === prevMeta.defaultModel ||
+      prevMeta.modelOptions.some((option) => option === normalizedModel)
+
+    if (shouldReplaceModel) {
+      modelDraft.value = nextMeta.defaultModel
+    }
+
+    void loadApiKeyForProvider(next)
   }
 
   async function loadVaultConfig() {
@@ -225,11 +307,14 @@ export const useSettingsStore = defineStore('settings', () => {
     isVaultLoading, isVaultSaving,
     isPromptLoading, isPromptSaving, isPromptImproving,
     error, successMessage,
+    currentProvider, providerDraft, providerOptions, currentProviderMeta, selectedProviderMeta,
+    displayModelOptions,
     currentModel, defaultModel, modelOptions, modelDraft, hasModelChanges,
     currentVaultPath, vaultPathDraft, vaultConfigured, hasVaultChanges,
     promptFiles, selectedPromptPath, selectedPrompt, promptContent, promptDraft,
     improveInstruction, improvedDraft, hasPromptChanges,
     loadApiKey, saveApiKey, loadModel, saveModel, loadVaultConfig, saveVaultConfig,
+    selectProvider,
     loadPrompts, selectPrompt, savePrompt,
     improvePrompt, applyImprovedDraft,
   }

@@ -77,6 +77,13 @@
           <h3 class="text-2xl font-headline font-bold text-on-surface leading-tight mb-3">
             {{ store.currentQuestion.question }}
           </h3>
+          <div
+            v-if="store.currentQuestion.actualModel"
+            class="inline-flex items-center gap-1.5 bg-surface-container-high text-on-surface-variant px-2.5 py-1 rounded-md text-xs font-label"
+          >
+            <span class="material-symbols-outlined text-sm">memory</span>
+            实际模型：{{ store.currentQuestion.actualModel }}
+          </div>
           <div v-if="store.currentQuestion.expectedKeywords.length" class="flex flex-wrap gap-2 mt-4">
             <span class="text-xs font-label text-on-surface-variant">考察要点:</span>
             <span

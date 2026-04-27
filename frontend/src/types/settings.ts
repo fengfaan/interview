@@ -4,16 +4,19 @@ export interface ApiKeyResponse {
 }
 
 export interface ApiKeyRequest {
+  provider: string
   apiKey: string
 }
 
 export interface ModelResponse {
+  provider: string
   model: string
   defaultModel: string
   options: string[]
 }
 
 export interface ModelRequest {
+  provider: string
   model: string
 }
 

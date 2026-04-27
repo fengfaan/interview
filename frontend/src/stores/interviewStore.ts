@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Direction, Level, HistoryEntry, KeywordHits } from '../types/interview'
+import type { Direction, Level, HistoryEntry, KeywordHits, QuestionResponse } from '../types/interview'
 import * as api from '../api/interviewApi'
 import { loadState, saveState } from '../utils/localStorage'
 
@@ -34,7 +34,7 @@ export const useInterviewStore = defineStore('interview', () => {
   const direction = ref<Direction>('GO_BACKEND')
   const level = ref<Level>('DEEP_PRINCIPLE')
   const isStarted = ref(false)
-  const currentQuestion = ref<{ questionId: string; question: string; expectedKeywords: string[] } | null>(null)
+  const currentQuestion = ref<QuestionResponse | null>(null)
   const draftAnswer = ref('')
   const history = ref<HistoryEntry[]>([])
   const feedbackExpanded = ref(false)

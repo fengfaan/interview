@@ -1,5 +1,10 @@
 const API_BASE = '/api'
 
+export interface SseEvent {
+  type: string
+  data: string
+}
+
 function readSseDataLine(line: string) {
   const index = line.indexOf(':')
   if (index === -1) {
@@ -17,6 +22,23 @@ export async function streamPost(
   url: string,
   body: unknown,
   onChunk: (text: string) => void,
+  onError?: (error: string) => void,
+): Promise<void> {
+  return streamPostEvents(
+    url,
+    body,
+    (event) => {
+      if (event.type === 'progress') return
+      onChunk(event.data)
+    },
+    onError,
+  )
+}
+
+export async function streamPostEvents(
+  url: string,
+  body: unknown,
+  onEvent: (event: SseEvent) => void,
   onError?: (error: string) => void,
 ): Promise<void> {
   const response = await fetch(`${API_BASE}${url}`, {
@@ -76,7 +98,7 @@ export async function streamPost(
       return true
     }
 
-    onChunk(data)
+    onEvent({ type: eventType, data })
     return false
   }
 

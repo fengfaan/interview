@@ -15,6 +15,7 @@ export interface QuestionResponse {
   questionId: string
   question: string
   expectedKeywords: string[]
+  actualModel?: string | null
 }
 
 export interface FeedbackRequest {

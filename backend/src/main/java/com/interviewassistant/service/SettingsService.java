@@ -27,16 +27,33 @@ public class SettingsService {
     private static final String SETTINGS_FILE_NAME = "settings.properties";
     private static final String SETTINGS_FILE_PROP = "app.settings.file";
     private static final String KEY_PROP = "api-key";
+    private static final String PROVIDER_PROP = "provider";
     private static final String MODEL_PROP = "model";
     private static final String VAULT_PATH_PROP = "obsidian.vault.path";
     private static final String PLACEHOLDER = "not-configured";
-    private static final List<String> MODEL_OPTIONS = List.of(
+    private static final List<String> ZHIPU_MODEL_OPTIONS = List.of(
             "glm-4-flash",
             "glm-4-air",
             "glm-4-airx",
             "glm-4-plus",
             "glm-4-long",
             "glm-z1-flash"
+    );
+    private static final List<String> OPENROUTER_MODEL_OPTIONS = List.of(
+            "openrouter/free",
+            "qwen/qwen3-coder:free",
+            "qwen/qwen3-next-80b-a3b-instruct:free",
+            "z-ai/glm-4.5-air:free",
+            "tencent/hy3-preview:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "nvidia/nemotron-3-nano-30b-a3b:free",
+            "minimax/minimax-m2.5:free",
+            "google/gemma-4-31b-it:free",
+            "google/gemma-4-26b-a4b-it:free",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "meta-llama/llama-3.2-3b-instruct:free",
+            "openai/gpt-oss-120b:free",
+            "openai/gpt-oss-20b:free"
     );
     private final ReentrantLock fileLock = new ReentrantLock();
 
@@ -45,10 +62,11 @@ public class SettingsService {
         log.info("Settings file resolved: {}", settingsPath());
         String realKey = getCurrentApiKey();
         if (realKey != null) {
-            aiConfig.refreshClient(realKey, getCurrentModel());
-            log.info("Loaded API key and model settings. model={}, key={}",
-                    aiConfig.getCurrentModel(), aiConfig.getCurrentKeyMask());
+            aiConfig.refreshClient(realKey, getCurrentProvider(), getCurrentModel());
+            log.info("Loaded AI settings. provider={}, model={}, key={}",
+                    aiConfig.getCurrentProvider(), aiConfig.getCurrentModel(), aiConfig.getCurrentKeyMask());
         } else {
+            aiConfig.clearClient(getCurrentProvider(), getCurrentModel());
             log.info("No saved API key found. Please configure it in Settings.");
         }
     }
@@ -58,10 +76,33 @@ public class SettingsService {
     }
 
     public String getCurrentApiKey() {
-        String fromFile = readPropertyFromFile(KEY_PROP);
+        return getApiKeyForProvider(getCurrentProvider());
+    }
+
+    public String getApiKeyForProvider(String provider) {
+        String normalizedProvider = AiConfig.normalizeProvider(provider);
+        String fromFile = readPropertyFromFile(providerKeyProp(normalizedProvider));
         if (isRealKey(fromFile)) return fromFile;
-        String fromEnv = environment.getProperty("spring.ai.openai.api-key");
+
+        if (AiConfig.PROVIDER_ZHIPU.equals(normalizedProvider)) {
+            String legacy = readPropertyFromFile(KEY_PROP);
+            if (isRealKey(legacy)) return legacy;
+        }
+
+        String fromEnv = environment.getProperty(envKeyForProvider(normalizedProvider));
         return isRealKey(fromEnv) ? fromEnv : null;
+    }
+
+    public String getCurrentProvider() {
+        String fromFile = readPropertyFromFile(PROVIDER_PROP);
+        if (fromFile != null && !fromFile.isBlank()) {
+            return AiConfig.normalizeProvider(fromFile);
+        }
+        String fromEnv = environment.getProperty("app.ai.provider");
+        if (fromEnv != null && !fromEnv.isBlank()) {
+            return AiConfig.normalizeProvider(fromEnv);
+        }
+        return AiConfig.DEFAULT_PROVIDER;
     }
 
     public String getCurrentModel() {
@@ -69,15 +110,21 @@ public class SettingsService {
         if (fromFile != null && !fromFile.isBlank()) return fromFile.trim();
         String fromEnv = environment.getProperty("spring.ai.openai.chat.options.model");
         if (fromEnv != null && !fromEnv.isBlank()) return fromEnv.trim();
-        return AiConfig.DEFAULT_MODEL;
+        return AiConfig.defaultModelFor(getCurrentProvider());
     }
 
     public String getDefaultModel() {
-        return AiConfig.DEFAULT_MODEL;
+        return AiConfig.defaultModelFor(getCurrentProvider());
     }
 
     public List<String> getModelOptions() {
-        return MODEL_OPTIONS;
+        return getModelOptions(getCurrentProvider());
+    }
+
+    public List<String> getModelOptions(String provider) {
+        return AiConfig.PROVIDER_OPENROUTER.equals(AiConfig.normalizeProvider(provider))
+                ? OPENROUTER_MODEL_OPTIONS
+                : ZHIPU_MODEL_OPTIONS;
     }
 
     public String maskKey(String key) {
@@ -85,9 +132,12 @@ public class SettingsService {
         return "****" + key.substring(key.length() - 4);
     }
 
-    public void saveApiKey(String newKey) {
-        saveSetting(KEY_PROP, newKey);
-        aiConfig.refreshClient(newKey, getCurrentModel());
+    public void saveApiKey(String provider, String newKey) {
+        String normalizedProvider = AiConfig.normalizeProvider(provider);
+        saveSetting(providerKeyProp(normalizedProvider), newKey);
+        if (normalizedProvider.equals(getCurrentProvider())) {
+            aiConfig.refreshClient(newKey, normalizedProvider, getCurrentModel());
+        }
     }
 
     public String getVaultPath() {
@@ -116,12 +166,16 @@ public class SettingsService {
         saveSetting(VAULT_PATH_PROP, path == null ? "" : path);
     }
 
-    public void saveModel(String newModel) {
+    public void saveModel(String provider, String newModel) {
+        String normalizedProvider = AiConfig.normalizeProvider(provider);
         String normalizedModel = normalizeModel(newModel);
+        saveSetting(PROVIDER_PROP, normalizedProvider);
         saveSetting(MODEL_PROP, normalizedModel);
-        String realKey = getCurrentApiKey();
+        String realKey = getApiKeyForProvider(normalizedProvider);
         if (realKey != null) {
-            aiConfig.refreshClient(realKey, normalizedModel);
+            aiConfig.refreshClient(realKey, normalizedProvider, normalizedModel);
+        } else {
+            aiConfig.clearClient(normalizedProvider, normalizedModel);
         }
     }
 
@@ -203,9 +257,21 @@ public class SettingsService {
         if (normalized.length() > 100) {
             throw new IllegalArgumentException("模型名称不能超过 100 个字符");
         }
-        if (!normalized.matches("[A-Za-z0-9._:-]+")) {
-            throw new IllegalArgumentException("模型名称只能包含字母、数字、点、下划线、冒号或短横线");
+        if (!normalized.matches("[A-Za-z0-9._:/-]+")) {
+            throw new IllegalArgumentException("模型名称只能包含字母、数字、点、下划线、冒号、斜杠或短横线");
         }
         return normalized;
+    }
+
+    private String providerKeyProp(String provider) {
+        return KEY_PROP + "." + provider;
+    }
+
+    private String envKeyForProvider(String provider) {
+        return switch (provider) {
+            case AiConfig.PROVIDER_OPENROUTER -> "OPENROUTER_API_KEY";
+            case AiConfig.PROVIDER_ZHIPU -> "spring.ai.openai.api-key";
+            default -> "spring.ai.openai.api-key";
+        };
     }
 }

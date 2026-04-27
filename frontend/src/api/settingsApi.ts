@@ -12,8 +12,8 @@ import type {
 
 const API_BASE = '/api/settings'
 
-export async function getApiKeyMasked(): Promise<ApiKeyResponse> {
-  const res = await fetch(`${API_BASE}/apikey`)
+export async function getApiKeyMasked(provider: string): Promise<ApiKeyResponse> {
+  const res = await fetch(`${API_BASE}/apikey?provider=${encodeURIComponent(provider)}`)
   const json = await res.json()
   if (!json.success) throw new Error(json.message || '获取设置失败')
   return json.data

@@ -1,15 +1,12 @@
 package com.interviewassistant.dto.interview;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-public class QuestionResponse {
+public class QuestionAiResponse {
     private String questionId;
     private String question;
     private List<String> expectedKeywords;
-    private String actualModel;
 }

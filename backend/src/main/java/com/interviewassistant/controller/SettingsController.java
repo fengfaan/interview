@@ -32,8 +32,10 @@ public class SettingsController {
     private final AiConfig aiConfig;
 
     @GetMapping("/apikey")
-    public ApiResponse<ApiKeyResponse> getApiKey() {
-        String key = settingsService.getCurrentApiKey();
+    public ApiResponse<ApiKeyResponse> getApiKey(@RequestParam(value = "provider", required = false) String provider) {
+        String key = provider == null || provider.isBlank()
+                ? settingsService.getCurrentApiKey()
+                : settingsService.getApiKeyForProvider(provider);
         boolean configured = key != null && !key.isBlank();
         String masked = configured ? settingsService.maskKey(key) : "";
         return ApiResponse.ok(new ApiKeyResponse(masked, configured));
@@ -41,13 +43,14 @@ public class SettingsController {
 
     @PostMapping("/apikey")
     public ApiResponse<Void> saveApiKey(@Valid @RequestBody ApiKeyRequest request) {
-        settingsService.saveApiKey(request.getApiKey());
+        settingsService.saveApiKey(request.getProvider(), request.getApiKey());
         return ApiResponse.ok(null);
     }
 
     @GetMapping("/model")
     public ApiResponse<ModelResponse> getModel() {
         return ApiResponse.ok(new ModelResponse(
+                settingsService.getCurrentProvider(),
                 settingsService.getCurrentModel(),
                 settingsService.getDefaultModel(),
                 settingsService.getModelOptions()
@@ -56,7 +59,7 @@ public class SettingsController {
 
     @PostMapping("/model")
     public ApiResponse<ModelResponse> saveModel(@Valid @RequestBody ModelRequest request) {
-        settingsService.saveModel(request.getModel());
+        settingsService.saveModel(request.getProvider(), request.getModel());
         return getModel();
     }
 

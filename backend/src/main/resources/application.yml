@@ -6,6 +6,8 @@ app:
     directory: ${PROMPT_DIR:prompts}
   settings:
     file: ${SETTINGS_FILE:}
+  openrouter:
+    proxy: ${OPENROUTER_PROXY:}
 
 spring:
   ai:

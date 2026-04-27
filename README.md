@@ -4,7 +4,7 @@
 
 它把「模拟面试」「推荐背题答案」「简历匹配分析」「STAR 改写」「Obsidian 知识沉淀」「Prompt 可视化调优」放在同一个桌面式 Web 应用里。目标不是做一个复杂平台，而是做一个你每天打开就能练、能改、能沉淀的个人工具。
 
-基于 Vue 3 + Spring Boot 3 + Spring AI 构建，接入智谱 GLM 的 OpenAI 兼容接口。本项目面向本地个人部署，不需要数据库、不需要登录、不需要复杂服务端。
+基于 Vue 3 + Spring Boot 3 + Spring AI 构建，接入智谱 GLM 和 OpenRouter 的 OpenAI 兼容接口。本项目面向本地个人部署，不需要数据库、不需要登录、不需要复杂服务端。
 
 ## 你可以用它做什么
 
@@ -16,6 +16,21 @@
 - 支持流式输出，点评不会等一整段生成完才出现
 - 一键生成「背题答案」，支持 Markdown 和代码块，方便复制整理
 - 可把推荐答案或面试反馈保存到 Obsidian 知识库
+
+### 快速刷题
+
+- 一次生成 10、20、50 或 100 道面试题
+- 后端会把大题量拆成小批次请求 AI，降低长响应失败和 JSON 异常的概率
+- 每批题目通过 SSE 增量推送，前端收到一批就展示一批
+- 单个批次失败会自动重试；重试后仍失败时会跳过该批，保留已生成题目并继续后续批次
+- 每道题包含题目、详尽参考答案和关键词，可单题保存或批量保存到 Obsidian
+
+### AI 渠道
+
+- 默认支持智谱 AI，推荐模型 `glm-4-flash`
+- 设置页支持切换 `智谱 AI` 或 `OpenRouter`，每个渠道独立保存自己的 API Key，可直接填写 OpenRouter Key 并使用 `openrouter/free` 等免费模型
+- 内部统一通过 Spring AI `ChatClient` 请求 OpenAI 兼容接口，业务层不直接拼 HTTP 请求
+- OpenRouter 支持通过 `OPENROUTER_PROXY` 配置后端代理，应对本机网络无法稳定直连的问题
 
 ### 简历调优台
 
@@ -85,7 +100,7 @@
 | 前端 | Vue 3.4, TypeScript 5, Vite 5, Pinia, Vue Router |
 | 样式 | Tailwind CSS |
 | 后端 | Spring Boot 3.3, Java 17 |
-| AI | Spring AI 1.1, 智谱 GLM OpenAI 兼容接口 |
+| AI | Spring AI 1.1, 智谱 GLM / OpenRouter OpenAI 兼容接口 |
 | 流式输出 | Server-Sent Events |
 | 本地配置 | `backend/settings.properties` |
 | 知识库 | Obsidian Vault Markdown |
@@ -99,6 +114,7 @@
 - Java 17
 - Maven 3.8+
 - 智谱 AI API Key：[https://open.bigmodel.cn/](https://open.bigmodel.cn/)
+- 可选：OpenRouter API Key：[https://openrouter.ai/](https://openrouter.ai/)
 - 可选：Obsidian 和一个本地 Vault
 
 ## 快速启动
@@ -129,6 +145,12 @@ http://localhost:8080
 
 ```bash
 export ZHIPU_API_KEY="your_api_key_here"
+```
+
+如果使用 OpenRouter，建议直接在设置页选择 `OpenRouter` 并保存 API Key 和模型。网络不稳定或无法直连时，可以给后端配置代理：
+
+```bash
+export OPENROUTER_PROXY="http://127.0.0.1:7890"
 ```
 
 设置页保存的 API Key、模型和 Obsidian Vault 路径默认持久化到：
@@ -172,6 +194,8 @@ Vite 会把 `/api` 自动代理到后端。
 7. 回答后查看关键词命中和 AI 点评
 8. 点击「AI 推荐背题答案」
 9. 把有价值的答案保存到知识库
+
+如果想快速刷题，可以进入「快速刷题」，选择方向、题型和数量后开始生成。大批量题目会分批返回，生成过程中可以直接展开查看已收到的题目。
 
 ## Obsidian 知识库说明
 
@@ -256,6 +280,7 @@ interviewAssistant/
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | POST | `/api/interview/question` | 生成面试题 |
+| POST | `/api/interview/batch-questions/stream` | 分批生成快速刷题题目，SSE 增量返回 |
 | POST | `/api/interview/feedback` | 分析回答，返回关键词命中和评分 |
 | POST | `/api/interview/feedback/stream` | 流式输出详细点评 |
 | POST | `/api/interview/recommended-answer/stream` | 流式输出推荐背题答案 |
@@ -296,11 +321,19 @@ Settings file resolved: ...
 
 说明触发了供应商速率限制。等 30 到 60 秒再试，或者换额度更高的 Key/模型。
 
-### 4. Obsidian 笔记保存失败？
+### 4. 使用 OpenRouter 遇到 Connection reset 怎么办？
+
+这通常是本机到 `openrouter.ai` 的网络链路不稳定。后端已经对快速刷题做了小批次、退避重试和失败批次跳过；如果仍频繁失败，建议：
+
+- 配置 `OPENROUTER_PROXY=http://127.0.0.1:7890`
+- 换一个更稳定或额度更高的 OpenRouter 模型
+- 临时切回智谱 AI 等国内可直连模型
+
+### 5. Obsidian 笔记保存失败？
 
 检查 Vault 路径是否是绝对路径，并且后端进程对该目录有读写权限。路径应填 Vault 根目录，不是某个子文件夹。
 
-### 5. Markdown 标题显示不正常？
+### 6. Markdown 标题显示不正常？
 
 推荐答案和点评会走前端 Markdown 渲染。提示词里也要求输出标准 Markdown，例如 `## 标题`，标题符号后需要有空格。
 

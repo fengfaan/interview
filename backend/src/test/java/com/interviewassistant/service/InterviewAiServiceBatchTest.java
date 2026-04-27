@@ -2,6 +2,7 @@ package com.interviewassistant.service;
 
 import com.interviewassistant.config.AiConfig;
 import com.interviewassistant.dto.interview.BatchQuestionItem;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +21,7 @@ import static org.mockito.Mockito.*;
 /**
  * TDD tests for batch question generation in InterviewAiService.
  *
- * Tests the core batch logic: splitting count into batches of 10,
+ * Tests the core batch logic: splitting count into small batches,
  * calling AI per batch, merging results with correct numbering.
  */
 @ExtendWith(MockitoExtension.class)
@@ -54,8 +55,9 @@ class InterviewAiServiceBatchTest {
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(callResponseSpec);
         when(promptService.load("interview/system.md")).thenReturn("You are an interviewer.");
+        when(promptService.render(eq("interview/batch-question.md"), anyMap())).thenReturn("rendered prompt");
 
-        service = new InterviewAiService(aiConfig, promptService);
+        service = new InterviewAiService(aiConfig, promptService, new ObjectMapper());
     }
 
     @Test
@@ -83,8 +85,8 @@ class InterviewAiServiceBatchTest {
     }
 
     @Test
-    void generateBatchQuestions_withCount15_callsAiTwice() {
-        // First batch returns 10, second returns 5
+    void generateBatchQuestions_withCount15_callsAiThreeTimes() {
+        // Three batches return 5 questions each
         String batch1Response = """
         {
           "questions": [
@@ -92,7 +94,13 @@ class InterviewAiServiceBatchTest {
             {"question": "Q2", "answer": "A2", "keywords": []},
             {"question": "Q3", "answer": "A3", "keywords": []},
             {"question": "Q4", "answer": "A4", "keywords": []},
-            {"question": "Q5", "answer": "A5", "keywords": []},
+            {"question": "Q5", "answer": "A5", "keywords": []}
+          ]
+        }
+        """;
+        String batch2Response = """
+        {
+          "questions": [
             {"question": "Q6", "answer": "A6", "keywords": []},
             {"question": "Q7", "answer": "A7", "keywords": []},
             {"question": "Q8", "answer": "A8", "keywords": []},
@@ -101,7 +109,7 @@ class InterviewAiServiceBatchTest {
           ]
         }
         """;
-        String batch2Response = """
+        String batch3Response = """
         {
           "questions": [
             {"question": "Q11", "answer": "A11", "keywords": []},
@@ -112,26 +120,32 @@ class InterviewAiServiceBatchTest {
           ]
         }
         """;
-        when(callResponseSpec.content()).thenReturn(batch1Response, batch2Response);
+        when(callResponseSpec.content()).thenReturn(batch1Response, batch2Response, batch3Response);
 
         List<BatchQuestionItem> result = service.generateBatchQuestions("GO_BACKEND", "BASIC", 15);
 
         assertEquals(15, result.size());
         assertEquals("batch_001", result.get(0).getQuestionId());
         assertEquals("batch_015", result.get(14).getQuestionId());
-        verify(chatClient, times(2)).prompt(); // 15 questions = 2 batches (10 + 5)
+        verify(chatClient, times(3)).prompt(); // 15 questions = 3 batches (5 + 5 + 5)
     }
 
     @Test
-    void generateBatchQuestions_withCount10_callsAiOnce() {
-        String aiResponse = """
+    void generateBatchQuestions_withCount10_callsAiTwice() {
+        String batch1Response = """
         {
           "questions": [
             {"question": "Q1", "answer": "A1", "keywords": []},
             {"question": "Q2", "answer": "A2", "keywords": []},
             {"question": "Q3", "answer": "A3", "keywords": []},
             {"question": "Q4", "answer": "A4", "keywords": []},
-            {"question": "Q5", "answer": "A5", "keywords": []},
+            {"question": "Q5", "answer": "A5", "keywords": []}
+          ]
+        }
+        """;
+        String batch2Response = """
+        {
+          "questions": [
             {"question": "Q6", "answer": "A6", "keywords": []},
             {"question": "Q7", "answer": "A7", "keywords": []},
             {"question": "Q8", "answer": "A8", "keywords": []},
@@ -140,12 +154,12 @@ class InterviewAiServiceBatchTest {
           ]
         }
         """;
-        when(callResponseSpec.content()).thenReturn(aiResponse);
+        when(callResponseSpec.content()).thenReturn(batch1Response, batch2Response);
 
         List<BatchQuestionItem> result = service.generateBatchQuestions("REACT_FRONTEND", "DEEP_PRINCIPLE", 10);
 
         assertEquals(10, result.size());
-        verify(chatClient, times(1)).prompt();
+        verify(chatClient, times(2)).prompt();
     }
 
     @Test

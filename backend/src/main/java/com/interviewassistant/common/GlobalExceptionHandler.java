@@ -3,6 +3,8 @@ package com.interviewassistant.common;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -45,6 +47,16 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail("API_NOT_FOUND", "接口不存在或后端尚未更新，请重启后端服务后重试"));
     }
 
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public void handleAsyncTimeout(AsyncRequestTimeoutException e) {
+        log.warn("SSE request timed out");
+    }
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncNotUsable(AsyncRequestNotUsableException e) {
+        log.warn("SSE response already closed: {}", AiErrorUtils.compactMessage(e));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception e) {
         if (AiErrorUtils.isRateLimit(e)) {
@@ -56,6 +68,11 @@ public class GlobalExceptionHandler {
             log.warn("AI unauthorized: {}", AiErrorUtils.compactMessage(e));
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.fail("AI_UNAUTHORIZED", AiErrorUtils.unauthorizedMessage()));
+        }
+        if (AiErrorUtils.isNetworkError(e)) {
+            log.warn("AI network error: {}", AiErrorUtils.compactMessage(e));
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiResponse.fail("AI_NETWORK_ERROR", AiErrorUtils.networkMessage()));
         }
 
         log.error("Unexpected error: {}", e.getMessage(), e);

@@ -1,19 +1,20 @@
 package com.interviewassistant.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewassistant.common.ApiResponse;
-import com.interviewassistant.dto.interview.BatchQuestionItem;
+import com.interviewassistant.dto.interview.BatchQuestionRequest;
 import com.interviewassistant.service.InterviewAiService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class InterviewControllerBatchTest {
@@ -21,45 +22,20 @@ class InterviewControllerBatchTest {
     @Mock
     private InterviewAiService interviewAiService;
 
-    @InjectMocks
     private InterviewController controller;
 
-    @Test
-    void batchQuestions_returnsQuestionsFromService() {
-        List<BatchQuestionItem> mockItems = List.of(
-                new BatchQuestionItem("batch_001", "What is Go?", "Go is...", List.of("go", "language")),
-                new BatchQuestionItem("batch_002", "What is a goroutine?", "A goroutine is...", List.of("goroutine"))
-        );
-        when(interviewAiService.generateBatchQuestions("GO_BACKEND", "BASIC", 2)).thenReturn(mockItems);
-
-        ApiResponse<List<BatchQuestionItem>> response = controller.batchQuestions(
-                new com.interviewassistant.dto.interview.BatchQuestionRequest() {{
-                    setDirection("GO_BACKEND");
-                    setLevel("BASIC");
-                    setCount(2);
-                }}
-        );
-
-        assertTrue(response.isSuccess());
-        assertEquals(2, response.getData().size());
-        assertEquals("batch_001", response.getData().get(0).getQuestionId());
-        verify(interviewAiService).generateBatchQuestions("GO_BACKEND", "BASIC", 2);
+    @BeforeEach
+    void setUp() {
+        controller = new InterviewController(interviewAiService, null, null, new ObjectMapper());
     }
 
     @Test
-    void batchQuestions_withZeroCount_returnsEmptyList() {
-        when(interviewAiService.generateBatchQuestions("GO_BACKEND", "BASIC", 0))
-                .thenReturn(Collections.emptyList());
+    void batchQuestions_returnsGoneAndRequiresStreamEndpoint() {
+        ResponseEntity<ApiResponse<Void>> response = controller.batchQuestions(new BatchQuestionRequest());
 
-        ApiResponse<List<BatchQuestionItem>> response = controller.batchQuestions(
-                new com.interviewassistant.dto.interview.BatchQuestionRequest() {{
-                    setDirection("GO_BACKEND");
-                    setLevel("BASIC");
-                    setCount(0);
-                }}
-        );
-
-        assertTrue(response.isSuccess());
-        assertTrue(response.getData().isEmpty());
+        assertEquals(HttpStatus.GONE, response.getStatusCode());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals("STREAM_REQUIRED", response.getBody().getError());
+        verifyNoInteractions(interviewAiService);
     }
 }

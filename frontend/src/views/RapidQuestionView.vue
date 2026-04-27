@@ -85,12 +85,23 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="store.isLoading" class="flex-1 flex items-center justify-center">
+    <div v-if="store.isLoading && !store.questions.length" class="flex-1 flex items-center justify-center">
       <div class="text-center">
         <span class="material-symbols-outlined animate-spin text-4xl text-primary block mb-3">progress_activity</span>
-        <p class="text-sm text-on-surface-variant">正在生成题目，请稍候...</p>
-        <p class="text-xs text-on-surface-variant mt-1">{{ store.count }} 道题需要一点时间</p>
+        <p class="text-sm text-on-surface-variant">{{ store.progressText || '正在生成题目，请稍候...' }}</p>
+        <p class="text-xs text-on-surface-variant mt-1">已生成 {{ store.generatedCount }} / {{ store.count }} 题</p>
       </div>
+    </div>
+
+    <div v-if="store.isLoading && store.questions.length" class="mx-8 mt-4 bg-primary-container text-on-primary-container px-4 py-3 rounded-xl flex items-center gap-2">
+      <span class="material-symbols-outlined animate-spin text-base">progress_activity</span>
+      <span class="text-sm">{{ store.progressText || '正在生成题目，请稍候...' }}</span>
+      <span class="ml-auto text-xs">已生成 {{ store.generatedCount }} / {{ store.count }}</span>
+    </div>
+
+    <div v-if="!store.isLoading && store.failedBatches.length && store.questions.length" class="mx-8 mt-4 bg-secondary-container text-on-secondary-container px-4 py-3 rounded-xl flex items-center gap-2">
+      <span class="material-symbols-outlined text-base">info</span>
+      <span class="text-sm">已保留成功生成的题目，失败批次：第 {{ store.failedBatches.join('、') }} 批</span>
     </div>
 
     <!-- Error -->

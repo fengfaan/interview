@@ -3,11 +3,9 @@ package com.interviewassistant.common;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
-
 public class SseUtils {
 
-    public static final long SSE_TIMEOUT = 120_000L;
+    public static final long SSE_TIMEOUT = 600_000L;
 
     public static SseEmitter createEmitter() {
         return new SseEmitter(SSE_TIMEOUT);
@@ -16,18 +14,24 @@ public class SseUtils {
     public static void sendChunk(SseEmitter emitter, String text) {
         try {
             emitter.send(SseEmitter.event().data(text, MediaType.TEXT_PLAIN));
-        } catch (IOException e) {
-            emitter.completeWithError(e);
+        } catch (Exception ignored) {
+        }
+    }
+
+    public static void sendProgress(SseEmitter emitter, String text) {
+        try {
+            emitter.send(SseEmitter.event().name("progress").data(text, MediaType.TEXT_PLAIN));
+        } catch (Exception ignored) {
         }
     }
 
     public static void sendDone(SseEmitter emitter) {
         try {
             emitter.send(SseEmitter.event().data("[DONE]"));
-            emitter.complete();
-        } catch (IOException e) {
-            emitter.completeWithError(e);
+        } catch (Exception ignored) {
+            return;
         }
+        completeQuietly(emitter);
     }
 
     public static void sendError(SseEmitter emitter, String errorCode, String message) {
@@ -36,9 +40,10 @@ public class SseUtils {
                     .name("error")
                     .data("{\"error\":\"" + escapeJson(errorCode) + "\",\"message\":\"" + escapeJson(message) + "\"}",
                             MediaType.APPLICATION_JSON));
-        } catch (IOException ignored) {
+        } catch (Exception ignored) {
+            return;
         }
-        emitter.complete();
+        completeQuietly(emitter);
     }
 
     public static void sendAiError(SseEmitter emitter, Throwable error, String fallbackMessage) {
@@ -55,5 +60,12 @@ public class SseUtils {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    private static void completeQuietly(SseEmitter emitter) {
+        try {
+            emitter.complete();
+        } catch (Exception ignored) {
+        }
     }
 }

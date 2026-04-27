@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class ModelResponse {
+    private String provider;
     private String model;
     private String defaultModel;
     private List<String> options;

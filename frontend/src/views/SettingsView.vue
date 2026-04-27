@@ -28,11 +28,17 @@
         <section class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
           <div class="flex items-center gap-3 mb-1">
             <span class="material-symbols-outlined text-primary">key</span>
-            <h3 class="font-headline font-bold text-on-surface">智谱 AI API Key</h3>
+            <h3 class="font-headline font-bold text-on-surface">AI API Key</h3>
           </div>
           <p class="text-sm text-on-surface-variant mb-5 ml-9">
-            配置你的智谱 AI API Key，保存后立即生效，无需重启服务。
-            <a href="https://open.bigmodel.cn/" target="_blank" class="text-primary underline">获取 API Key</a>
+            当前正在编辑：{{ store.selectedProviderMeta.label }}。每个渠道单独保存自己的 API Key，不会互相覆盖。
+            <a :href="store.selectedProviderMeta.docsUrl" target="_blank" class="text-primary underline">{{ store.selectedProviderMeta.docsLabel }}</a>
+          </p>
+          <p class="text-xs text-on-surface-variant mb-5 ml-9">
+            {{ store.selectedProviderMeta.apiKeyHelp }}
+          </p>
+          <p v-if="store.providerDraft !== store.currentProvider" class="text-xs text-tertiary ml-9 mb-4">
+            当前生效渠道仍然是 {{ store.currentProviderMeta.label }}，保存“AI 渠道与模型”后才会切换。
           </p>
 
           <div v-if="!store.configured" class="mb-4 bg-tertiary-container/40 text-on-tertiary-container px-4 py-2.5 rounded-lg text-sm flex items-center gap-2">
@@ -44,7 +50,7 @@
             <input
               v-model="inputKey"
               :type="showKey ? 'text' : 'password'"
-              :placeholder="store.configured ? store.maskedKey : '请输入智谱 AI API Key'"
+              :placeholder="store.configured ? store.maskedKey : `请输入 ${store.selectedProviderMeta.label} API Key`"
               class="w-full bg-surface-container-high text-on-surface border-none rounded-lg px-4 py-3 pr-12 text-sm focus:ring-2 focus:ring-primary outline-none"
             />
             <button
@@ -77,26 +83,43 @@
         <section class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
           <div class="flex items-center gap-3 mb-1">
             <span class="material-symbols-outlined text-primary">model_training</span>
-            <h3 class="font-headline font-bold text-on-surface">模型选择</h3>
+            <h3 class="font-headline font-bold text-on-surface">AI 渠道与模型</h3>
           </div>
           <p class="text-sm text-on-surface-variant mb-5 ml-9">
-            只切换当前使用的模型，不会修改 API Key。可选择预设，也可以输入自定义模型 ID。
+            先选择 AI 渠道，再设置模型。切换渠道后，建议先保存，再填写对应的 API Key。
+          </p>
+
+          <label class="text-xs font-label text-on-surface-variant block mb-2">当前渠道</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="provider in store.providerOptions"
+              :key="provider.value"
+              @click="store.selectProvider(provider.value)"
+              class="text-xs px-3 py-1.5 rounded-full transition-colors"
+              :class="store.providerDraft === provider.value ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'"
+            >
+              {{ provider.label }}
+            </button>
+          </div>
+
+          <p class="text-xs text-on-surface-variant mt-3">
+            {{ store.selectedProviderMeta.apiKeyHelp }}
           </p>
 
           <label class="text-xs font-label text-on-surface-variant block mb-2">当前模型</label>
           <input
             v-model="store.modelDraft"
             list="model-options"
-            placeholder="例如 glm-4-flash"
+            :placeholder="store.selectedProviderMeta.modelPlaceholder"
             class="w-full bg-surface-container-high text-on-surface border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
           />
           <datalist id="model-options">
-            <option v-for="model in store.modelOptions" :key="model" :value="model" />
+            <option v-for="model in store.displayModelOptions" :key="model" :value="model" />
           </datalist>
 
           <div class="flex flex-wrap gap-2 mt-3">
             <button
-              v-for="model in store.modelOptions"
+              v-for="model in store.displayModelOptions"
               :key="model"
               @click="store.modelDraft = model"
               class="text-xs px-3 py-1.5 rounded-full transition-colors"
@@ -108,7 +131,7 @@
 
           <div class="flex items-center justify-between mt-4">
             <span class="text-xs text-on-surface-variant">
-              已生效: {{ store.currentModel || store.defaultModel || '-' }}
+              已生效: {{ store.currentProviderMeta.label }} / {{ store.currentModel || store.defaultModel || '-' }}
             </span>
             <button
               @click="store.saveModel()"
@@ -295,7 +318,6 @@ const inputKey = ref('')
 const showKey = ref(false)
 
 onMounted(() => {
-  store.loadApiKey()
   store.loadModel()
   store.loadVaultConfig()
   store.loadPrompts()
