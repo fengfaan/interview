@@ -98,4 +98,9 @@ public class InterviewController {
     public SseEmitter streamRecommendedAnswer(@Valid @RequestBody RecommendedAnswerRequest request) {
         return interviewStreamService.streamRecommendedAnswer(request);
     }
+
+    @PostMapping(value = "/deep-dive/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamDeepDive(@Valid @RequestBody DeepDiveRequest request) {
+        return interviewStreamService.streamDeepDive(request);
+    }
 }
