@@ -128,4 +128,185 @@ class InterviewAiServiceDeepDiveTest {
         verify(promptService).render(eq("interview/deep-dive.md"), argThat(map ->
                 map.get("expectedKeywords") instanceof List<?> list && list.isEmpty()));
     }
+
+    @Test
+    void buildDeepDivePrompt_longContext_keepsKeywordsAndCausalLines() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        String longContext = "# 背题答案\n"
+                + "B+树的叶子节点通过链表连接。\n"
+                + "因为范围查询需要顺序扫描相邻数据页，所以叶子节点链表可以减少随机 IO。\n"
+                + "这是一句普通铺垫。".repeat(1_000);
+
+        service.buildDeepDivePrompt(
+                "为什么数据库索引用 B+ 树", List.of("叶子节点", "范围查询"),
+                DeepDiveContextType.RECOMMENDED_ANSWER, longContext, List.of());
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String context = (String) map.get("contextContent");
+            return context != null
+                    && context.length() <= 4_000
+                    && context.contains("叶子节点")
+                    && context.contains("因为范围查询需要顺序扫描相邻数据页")
+                    && context.contains("上下文压缩说明");
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_longContext_keepsQuestionRelatedContentWithoutKeywords() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        ChatMessage latestQuestion = new ChatMessage();
+        latestQuestion.setRole(ChatRole.USER);
+        latestQuestion.setContent("为什么红黑树不适合数据库磁盘 IO？");
+
+        String longContext = "普通铺垫。".repeat(600)
+                + "红黑树通常适合内存中的动态查找结构。"
+                + "因为数据库索引要尽量减少磁盘 IO，所以 B+ 树更关注树高和页内扇出。"
+                + "普通结尾。".repeat(600);
+
+        service.buildDeepDivePrompt(
+                "为什么数据库索引用 B+ 树", List.of(),
+                DeepDiveContextType.RECOMMENDED_ANSWER, longContext, List.of(latestQuestion));
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String context = (String) map.get("contextContent");
+            return context != null
+                    && context.length() <= 4_000
+                    && context.contains("红黑树通常适合内存中的动态查找结构")
+                    && context.contains("因为数据库索引要尽量减少磁盘 IO");
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_longMarkdownLine_splitsIntoSentencesBeforeSelecting() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        String longContext = "普通说明。".repeat(500)
+                + "事务隔离级别的本质是控制并发读写的一致性风险。"
+                + "例如可重复读要处理不可重复读，串行化会降低并发能力。"
+                + "无关铺垫。".repeat(500);
+
+        service.buildDeepDivePrompt(
+                "事务隔离级别解决什么问题", List.of("事务", "隔离级别"),
+                DeepDiveContextType.FEEDBACK, longContext, List.of());
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String context = (String) map.get("contextContent");
+            return context != null
+                    && context.length() <= 4_000
+                    && context.contains("事务隔离级别的本质是控制并发读写的一致性风险")
+                    && context.contains("例如可重复读要处理不可重复读");
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_longHistory_keepsRecentMessagesOnly() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        List<ChatMessage> messages = java.util.stream.IntStream.rangeClosed(1, 14)
+                .mapToObj(i -> {
+                    ChatMessage message = new ChatMessage();
+                    message.setRole(i % 2 == 0 ? ChatRole.ASSISTANT : ChatRole.USER);
+                    message.setContent("消息" + i);
+                    return message;
+                })
+                .toList();
+
+        service.buildDeepDivePrompt("Q", List.of(), DeepDiveContextType.FEEDBACK, "ctx", messages);
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String history = (String) map.get("history");
+            return history != null
+                    && !history.contains("候选人：消息1\n")
+                    && !history.contains("教练：消息2\n")
+                    && history.contains("消息3")
+                    && history.contains("消息14");
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_longMessage_isCompacted() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        ChatMessage message = new ChatMessage();
+        message.setRole(ChatRole.USER);
+        message.setContent("为什么".repeat(700));
+
+        service.buildDeepDivePrompt("Q", List.of(), DeepDiveContextType.FEEDBACK, "ctx", List.of(message));
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String history = (String) map.get("history");
+            return history != null
+                    && history.length() < 1_300
+                    && history.contains("已压缩");
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_nullMessages_returnsEmptyHistory() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        service.buildDeepDivePrompt("Q", List.of(), DeepDiveContextType.FEEDBACK, "ctx", null);
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String history = (String) map.get("history");
+            return history != null && history.isEmpty();
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_emptyMessages_returnsEmptyHistory() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        service.buildDeepDivePrompt("Q", List.of(), DeepDiveContextType.FEEDBACK, "ctx", List.of());
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String history = (String) map.get("history");
+            return history != null && history.isEmpty();
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_shortContext_returnsUnchanged() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        String shortContext = "B+树是一种平衡树结构。";
+
+        service.buildDeepDivePrompt("Q", List.of("索引"), DeepDiveContextType.FEEDBACK, shortContext, List.of());
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String context = (String) map.get("contextContent");
+            return context != null && context.equals(shortContext);
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_nullContext_returnsEmptyContext() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        service.buildDeepDivePrompt("Q", List.of(), DeepDiveContextType.FEEDBACK, null, List.of());
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String context = (String) map.get("contextContent");
+            return context != null && context.isEmpty();
+        }));
+    }
+
+    @Test
+    void buildDeepDivePrompt_allLowValueContext_usesFallbackWithHeadTail() {
+        when(promptService.render(eq("interview/deep-dive.md"), anyMap())).thenReturn("ok");
+
+        String lowValueContext = "继续加油。".repeat(800) + "整体不错，表达清晰。".repeat(800);
+
+        service.buildDeepDivePrompt("Q", List.of(), DeepDiveContextType.FEEDBACK, lowValueContext, List.of());
+
+        verify(promptService).render(eq("interview/deep-dive.md"), argThat(map -> {
+            String context = (String) map.get("contextContent");
+            return context != null
+                    && context.contains("原文前半")
+                    && context.contains("原文后半")
+                    && context.contains("省略");
+        }));
+    }
 }

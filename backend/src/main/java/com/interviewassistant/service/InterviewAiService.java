@@ -27,6 +27,14 @@ public class InterviewAiService {
     private static final int BATCH_SIZE = 5;
     private static final int MAX_BATCH_ATTEMPTS = 3;
     private static final long INITIAL_BATCH_RETRY_DELAY_MS = 1_200L;
+    private static final int MAX_DEEP_DIVE_CONTEXT_CHARS = 4_000;
+    private static final int DEEP_DIVE_EXCERPT_CHARS = 2_800;
+    private static final int DEEP_DIVE_OPENING_CHARS = 800;
+    private static final int MAX_DEEP_DIVE_MESSAGES = 12;
+    private static final int MAX_DEEP_DIVE_MESSAGE_CHARS = 1_200;
+
+    private record DeepDiveSegment(int index, String text, int score) {
+    }
 
     public QuestionResponse generateQuestion(InterviewDirection direction, InterviewLevel level, List<HistoryEntry> history) {
         String historySummary = history == null || history.isEmpty() ? "无（首次提问）"
@@ -94,17 +102,249 @@ public class InterviewAiService {
     public String buildDeepDivePrompt(String question, List<String> expectedKeywords,
                                        DeepDiveContextType contextType, String contextContent,
                                        List<ChatMessage> messages) {
-        String history = messages.stream()
-                .map(m -> (m.getRole() == ChatRole.USER ? "候选人" : "教练") + "：" + m.getContent())
+        List<String> keywords = expectedKeywords != null ? expectedKeywords : List.of();
+        List<ChatMessage> compactMessages = compactDeepDiveMessages(messages);
+        String history = compactMessages.stream()
+                .map(m -> (m.getRole() == ChatRole.USER ? "候选人" : "教练") + "：" + compactText(m.getContent(), MAX_DEEP_DIVE_MESSAGE_CHARS))
                 .collect(Collectors.joining("\n\n"));
 
         return promptService.render("interview/deep-dive.md", Map.of(
                 "question", question,
-                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of(),
+                "expectedKeywords", keywords,
                 "contextType", contextType == DeepDiveContextType.RECOMMENDED_ANSWER ? "推荐答案" : "反馈点评",
-                "contextContent", contextContent,
+                "contextContent", compactDeepDiveContext(contextContent, keywords, latestUserQuestion(compactMessages)),
                 "history", history
         ));
+    }
+
+    private List<ChatMessage> compactDeepDiveMessages(List<ChatMessage> messages) {
+        if (messages == null || messages.size() <= MAX_DEEP_DIVE_MESSAGES) {
+            return messages != null ? messages : List.of();
+        }
+        return messages.subList(messages.size() - MAX_DEEP_DIVE_MESSAGES, messages.size());
+    }
+
+    private String compactDeepDiveContext(String content, List<String> expectedKeywords, String latestUserQuestion) {
+        String normalized = normalizeDeepDiveText(content);
+        if (normalized.length() <= MAX_DEEP_DIVE_CONTEXT_CHARS) {
+            return normalized;
+        }
+
+        List<String> segments = splitDeepDiveSegments(normalized);
+        Set<String> questionTerms = extractQuestionTerms(latestUserQuestion);
+        List<DeepDiveSegment> ranked = new ArrayList<>();
+        for (int i = 0; i < segments.size(); i++) {
+            int score = scoreDeepDiveSegment(segments.get(i), expectedKeywords, questionTerms);
+            if (score > 0) {
+                ranked.add(new DeepDiveSegment(i, segments.get(i), score));
+            }
+        }
+        ranked.sort(Comparator
+                .comparingInt(DeepDiveSegment::score)
+                .reversed()
+                .thenComparingInt(DeepDiveSegment::index));
+
+        Set<Integer> selectedIndexes = new TreeSet<>();
+        int selectedChars = 0;
+        for (DeepDiveSegment segment : ranked) {
+            for (int index = Math.max(0, segment.index() - 1);
+                 index <= Math.min(segments.size() - 1, segment.index() + 1);
+                 index++) {
+                if (selectedIndexes.contains(index)) {
+                    continue;
+                }
+                int nextLength = segments.get(index).length() + 3;
+                if (selectedChars + nextLength > DEEP_DIVE_EXCERPT_CHARS) {
+                    continue;
+                }
+                selectedIndexes.add(index);
+                selectedChars += nextLength;
+            }
+        }
+        if (selectedIndexes.isEmpty()) {
+            return buildFallbackCompactContext(normalized);
+        }
+
+        StringBuilder result = new StringBuilder("【上下文压缩说明】以下为原文提取式摘录，未经过 AI 改写；保留事实、技术术语、因果关系、对比场景和候选人困惑，已删去客套话、重复段落和纯格式内容。\n\n");
+        result.append("【高信号摘录】\n");
+        for (Integer index : selectedIndexes) {
+            appendWithinBudget(result, "- " + segments.get(index), DEEP_DIVE_EXCERPT_CHARS + 300);
+        }
+        String background = compactText(normalized, DEEP_DIVE_OPENING_CHARS);
+        int remainingForBackground = MAX_DEEP_DIVE_CONTEXT_CHARS - result.length() - "\n【必要背景】\n".length();
+        if (remainingForBackground > 100 && !background.isBlank()) {
+            result.append("\n【必要背景】\n");
+            appendWithinBudget(result, background, MAX_DEEP_DIVE_CONTEXT_CHARS);
+        } else {
+            result.append("\n...（因篇幅限制，省略必要背景段）");
+        }
+        return compactText(result.toString(), MAX_DEEP_DIVE_CONTEXT_CHARS);
+    }
+
+    private String buildFallbackCompactContext(String normalized) {
+        int halfBudget = MAX_DEEP_DIVE_CONTEXT_CHARS / 2;
+        String header = "【上下文压缩说明】原文未检测到高信号段落，以下为原文首尾摘要。\n\n";
+        String head = normalized.substring(0, Math.min(halfBudget, normalized.length()));
+        if (normalized.length() > halfBudget) {
+            String tail = normalized.substring(normalized.length() - halfBudget);
+            return header + "【原文前半】\n" + head + "\n\n...（省略）\n\n【原文后半】\n" + tail;
+        }
+        return header + head;
+    }
+
+    private String latestUserQuestion(List<ChatMessage> messages) {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessage message = messages.get(i);
+            if (message.getRole() == ChatRole.USER) {
+                return message.getContent();
+            }
+        }
+        return "";
+    }
+
+    private List<String> splitDeepDiveSegments(String text) {
+        List<String> segments = new ArrayList<>();
+        for (String rawLine : text.split("\n")) {
+            String line = rawLine.trim();
+            if (line.isBlank() || line.matches("^[-*_\\s]{3,}$")) {
+                continue;
+            }
+            if (line.startsWith("#")) {
+                segments.add(line);
+                continue;
+            }
+            StringBuilder sentence = new StringBuilder();
+            for (int i = 0; i < line.length(); i++) {
+                char ch = line.charAt(i);
+                sentence.append(ch);
+                if ("。！？!?；;".indexOf(ch) >= 0 || sentence.length() >= 240) {
+                    addDeepDiveSegment(segments, sentence.toString());
+                    sentence.setLength(0);
+                }
+            }
+            addDeepDiveSegment(segments, sentence.toString());
+        }
+        return segments;
+    }
+
+    private void addDeepDiveSegment(List<String> segments, String text) {
+        String segment = text.trim();
+        if (!segment.isBlank() && !segment.matches("^[-*_\\s]{3,}$")) {
+            segments.add(segment);
+        }
+    }
+
+    private int scoreDeepDiveSegment(String text, List<String> expectedKeywords, Set<String> questionTerms) {
+        String lowerText = text.toLowerCase(Locale.ROOT);
+        int score = 0;
+        long keywordHits = expectedKeywords.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(keyword -> !keyword.isBlank())
+                .filter(keyword -> lowerText.contains(keyword.toLowerCase(Locale.ROOT)))
+                .limit(2)
+                .count();
+        score += keywordHits * 5;
+
+        long questionTermHits = questionTerms.stream()
+                .filter(term -> lowerText.contains(term.toLowerCase(Locale.ROOT)))
+                .limit(2)
+                .count();
+        score += questionTermHits * 5;
+
+        if (text.matches(".*(因为|所以|因此|导致|原因|本质|取决于|意味着).*")) {
+            score += 4;
+        }
+        if (text.matches(".*(区别|相比|而不是|优点|缺点|优势|劣势|不同).*")) {
+            score += 3;
+        }
+        if (text.matches(".*(适合|场景|例如|比如|实践中|生产环境|实际项目).*")) {
+            score += 3;
+        }
+        if (text.matches(".*(风险|问题|误区|遗漏|注意|瓶颈|限制|未命中|命中).*")) {
+            score += 3;
+        }
+        if (text.startsWith("#")) {
+            score += 2;
+        }
+        if (text.contains("？") || text.contains("?")) {
+            score += 3;
+        }
+        if (looksTechnical(text)) {
+            score += 2;
+        }
+        if (isLowValueDeepDiveSegment(text)) {
+            score -= 4;
+        }
+        return score;
+    }
+
+    private Set<String> extractQuestionTerms(String question) {
+        String normalized = normalizeDeepDiveText(question);
+        LinkedHashSet<String> terms = new LinkedHashSet<>();
+        Arrays.stream(normalized.split("[\\s,，。！？?；;：:、()（）\\[\\]{}<>《》\"'`]+"))
+                .map(String::trim)
+                .filter(term -> term.length() >= 2)
+                .forEach(terms::add);
+
+        String hanOnly = normalized.replaceAll("[^\\p{IsHan}A-Za-z0-9+#._-]", "");
+        for (int start = 0; start < hanOnly.length(); start++) {
+            for (int len = 2; len <= 4 && start + len <= hanOnly.length(); len++) {
+                String term = hanOnly.substring(start, start + len);
+                if (!isQuestionStopTerm(term)) {
+                    terms.add(term);
+                }
+            }
+            if (terms.size() >= 120) {
+                break;
+            }
+        }
+        return terms;
+    }
+
+    private boolean isQuestionStopTerm(String term) {
+        return Set.of("为什么", "怎么", "如何", "是否", "是不是", "这个", "那个", "一下", "哪些", "什么", "区别", "影响").contains(term);
+    }
+
+    private boolean looksTechnical(String text) {
+        return text.matches(".*[A-Za-z0-9][A-Za-z0-9+#._/-]{1,}.*")
+                || text.matches(".*(索引|缓存|线程|事务|锁|队列|内存|磁盘|网络|接口|模型|节点|算法|复杂度|数据库|服务|架构).*");
+    }
+
+    private boolean isLowValueDeepDiveSegment(String text) {
+        return text.matches(".*(继续加油|整体不错|表达清晰|可以更好|建议你|下面我们|总的来说|希望你|简单来说).*")
+                && !looksTechnical(text);
+    }
+
+    private void appendWithinBudget(StringBuilder builder, String text, int budget) {
+        if (builder.length() >= budget || text == null || text.isBlank()) {
+            return;
+        }
+        int remaining = budget - builder.length();
+        if (text.length() <= remaining) {
+            builder.append(text).append('\n');
+        } else if (remaining > 80) {
+            builder.append(text, 0, remaining - 20).append("...\n");
+        }
+    }
+
+    private String compactText(String text, int maxChars) {
+        String normalized = normalizeDeepDiveText(text);
+        if (normalized.length() <= maxChars) {
+            return normalized;
+        }
+        return normalized.substring(0, Math.max(0, maxChars - 20)).stripTrailing() + "\n...（已压缩）";
+    }
+
+    private String normalizeDeepDiveText(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("\r\n", "\n")
+                .replace("\r", "\n")
+                .replaceAll("[ \t]+", " ")
+                .replaceAll("\n{3,}", "\n\n")
+                .trim();
     }
 
     public List<BatchQuestionItem> generateBatchQuestions(InterviewDirection direction, InterviewLevel level, int count) {
