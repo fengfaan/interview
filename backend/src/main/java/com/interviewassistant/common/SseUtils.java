@@ -10,7 +10,7 @@ import java.util.Map;
 @Slf4j
 public class SseUtils {
 
-    public static final long SHORT_STREAM_TIMEOUT = 120_000L;
+    public static final long SHORT_STREAM_TIMEOUT = 300_000L;
     public static final long BATCH_STREAM_TIMEOUT = 600_000L;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

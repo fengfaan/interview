@@ -13,7 +13,9 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.Disposable;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -95,16 +97,41 @@ public class AiGateway {
     public void streamText(SseEmitter emitter, String systemPrompt, String userPrompt,
                            String failureMessage, String startupFailureMessage) {
         try {
-            aiConfig.getCurrentChatClient().prompt()
+            AtomicBoolean closed = new AtomicBoolean(false);
+            Disposable subscription = aiConfig.getCurrentChatClient().prompt()
                     .system(systemPrompt)
                     .user(userPrompt)
                     .stream()
                     .content()
                     .subscribe(
-                            chunk -> SseUtils.sendChunk(emitter, chunk),
-                            error -> sendStreamError(emitter, error, failureMessage),
-                            () -> SseUtils.sendDone(emitter)
+                            chunk -> {
+                                if (!closed.get()) {
+                                    SseUtils.sendChunk(emitter, chunk);
+                                }
+                            },
+                            error -> {
+                                if (!closed.get()) {
+                                    sendStreamError(emitter, error, failureMessage);
+                                } else {
+                                    log.debug("AI stream failed after SSE closed: {}", AiErrorUtils.compactMessage(error));
+                                }
+                            },
+                            () -> {
+                                if (!closed.get()) {
+                                    SseUtils.sendDone(emitter);
+                                }
+                            }
                     );
+            Runnable cancelUpstream = () -> {
+                closed.set(true);
+                subscription.dispose();
+            };
+            emitter.onTimeout(cancelUpstream);
+            emitter.onCompletion(cancelUpstream);
+            emitter.onError(error -> {
+                log.debug("SSE stream closed before AI stream completed: {}", AiErrorUtils.compactMessage(error));
+                cancelUpstream.run();
+            });
         } catch (Exception e) {
             sendStreamStartupError(emitter, e, startupFailureMessage);
         }
