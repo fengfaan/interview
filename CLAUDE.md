@@ -40,7 +40,7 @@ Spring Boot API (:8080)
   └── LLM Provider (ZhiPu GLM / OpenRouter)
 ```
 
-**Frontend**: Vue 3.4 + TypeScript 5 + Vite 5 + Pinia (5 stores) + Vue Router + Tailwind CSS. State lives in Pinia stores and LocalStorage. `streamClient.ts` handles SSE via fetch+ReadableStream.
+**Frontend**: Vue 3.4 + TypeScript 5 + Vite 5 + Pinia (6 stores) + Vue Router + Tailwind CSS. State lives in Pinia stores and LocalStorage. `streamClient.ts` handles SSE via fetch+ReadableStream.
 
 **Backend**: Spring Boot 3.3 + Java 17 + Spring AI 1.1. No database — settings persist in `backend/settings.properties`, knowledge notes are Obsidian Markdown files. Lombok is used throughout DTOs and services.
 
@@ -51,10 +51,10 @@ Spring Boot API (:8080)
 ## Key Design Patterns
 
 - **DTOs by domain**: `dto/interview/`, `dto/resume/`, `dto/settings/`, `dto/knowledge/` — each domain has its own request/response objects
-- **Services by domain**: `InterviewAiService`, `ResumeAiService`, `SettingsService`, `ObsidianService`, `PromptService`
-- **SSE streaming**: Endpoints suffixed with `/stream` return `text/event-stream`. Frontend `streamClient.ts` parses these
-- **Pinia stores**: One per view (`interviewStore`, `resumeStore`, `settingsStore`, `knowledgeStore`, `rapidQuestionStore`)
-- **API layer**: `frontend/src/api/` has one file per backend controller
+- **Services by domain**: `InterviewAiService` (prompt building + JSON generation), `ResumeAiService`, `SettingsService`, `ObsidianService`, `PromptService`. Streaming orchestration lives in separate services: `InterviewStreamService`, `ResumeStreamService`, `BatchQuestionStreamService`. All AI calls go through `AiGateway` which wraps Spring AI's `ChatClient`.
+- **SSE streaming**: Endpoints suffixed with `/stream` return `text/event-stream`. Backend uses `SseEmitter` + `AiGateway.streamText()` with upstream subscription cancellation on timeout/close. Frontend `streamClient.ts` parses these via `fetch` + `ReadableStream`.
+- **Pinia stores**: One per view (`interviewStore`, `resumeStore`, `settingsStore`, `knowledgeStore`, `rapidQuestionStore`) plus `deepDiveStore` for the multi-turn Q&A drawer in the interview room.
+- **API layer**: `frontend/src/api/` has one file per backend controller. `streamClient.ts` is the shared SSE client.
 
 ## Environment Variables
 
