@@ -49,6 +49,7 @@ public class AiConfig {
     private volatile String currentProvider = DEFAULT_PROVIDER;
     private volatile String currentModel = DEFAULT_MODEL;
     private volatile String currentKeyMask = "";
+    private volatile OpenAiChatModel currentChatModel;
 
     public ChatClient getCurrentChatClient() {
         if (!realKeyConfigured || currentChatClient == null) {
@@ -73,6 +74,13 @@ public class AiConfig {
         return currentKeyMask;
     }
 
+    public OpenAiChatModel getCurrentChatModel() {
+        if (!realKeyConfigured || currentChatModel == null) {
+            throw new IllegalStateException("请先在设置页面配置 API Key");
+        }
+        return currentChatModel;
+    }
+
     public String getOpenRouterProxy() {
         return openRouterProxy;
     }
@@ -87,6 +95,7 @@ public class AiConfig {
                 ? defaultModelFor(this.currentProvider)
                 : modelName.trim();
         this.currentChatClient = null;
+        this.currentChatModel = null;
         this.currentKeyMask = "";
         this.realKeyConfigured = false;
         log.info("AI client cleared. provider={}, model={}", currentProvider, currentModel);
@@ -130,6 +139,7 @@ public class AiConfig {
             modelBuilder.retryTemplate(openRouterRetryTemplate());
         }
         OpenAiChatModel model = modelBuilder.build();
+        this.currentChatModel = model;
 
         this.currentChatClient = ChatClient.builder(model).build();
         this.currentProvider = normalizedProvider;
