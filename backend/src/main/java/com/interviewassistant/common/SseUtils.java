@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -67,6 +68,20 @@ public class SseUtils {
 
     public static void sendAiError(SseEmitter emitter, Throwable error, String fallbackMessage) {
         sendError(emitter, AiErrorUtils.errorCode(error), AiErrorUtils.userMessage(error, fallbackMessage));
+    }
+
+    public static void sendAgentStep(SseEmitter emitter, String keyword, List<String> noteTitles) {
+        try {
+            Map<String, Object> payload = Map.of(
+                    "keyword", keyword != null ? keyword : "",
+                    "notes", noteTitles != null ? noteTitles : List.of()
+            );
+            emitter.send(SseEmitter.event()
+                    .name("agent_step")
+                    .data(OBJECT_MAPPER.writeValueAsString(payload), MediaType.APPLICATION_JSON));
+        } catch (Exception e) {
+            log.debug("SSE agent_step send failed: {}", AiErrorUtils.compactMessage(e));
+        }
     }
 
     private static void completeQuietly(SseEmitter emitter) {
