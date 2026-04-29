@@ -12,6 +12,8 @@ app:
     file: ${SETTINGS_FILE:}
   openrouter:
     proxy: ${OPENROUTER_PROXY:}
+  smart-embedding:
+    endpoint: ${SMART_EMBEDDING_ENDPOINT:http://127.0.0.1:8765/embed}
 
 spring:
   ai:

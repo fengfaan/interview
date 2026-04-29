@@ -30,7 +30,9 @@
       "Bash(cp /Users/fengfan/monolithic_arch_springboot/mvnw /Users/fengfan/interviewAssistant/backend/mvnw)",
       "Bash(cp /Users/fengfan/monolithic_arch_springboot/.mvn/wrapper/maven-wrapper.properties /Users/fengfan/interviewAssistant/backend/.mvn/wrapper/maven-wrapper.properties)",
       "Bash(chmod +x mvnw)",
-      "Bash(./mvnw test *)"
+      "Bash(./mvnw test *)",
+      "Bash(npm --prefix /Users/fengfan/interviewAssistant/frontend run build)",
+      "Bash(git status *)"
     ]
   }
 }

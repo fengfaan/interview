@@ -4,7 +4,10 @@ import com.interviewassistant.common.ApiResponse;
 import com.interviewassistant.dto.knowledge.CreateNoteRequest;
 import com.interviewassistant.dto.knowledge.NoteDetail;
 import com.interviewassistant.dto.knowledge.NoteItem;
+import com.interviewassistant.dto.knowledge.SmartConnectionSearchResult;
+import com.interviewassistant.dto.knowledge.SmartConnectionsIndexStatus;
 import com.interviewassistant.service.ObsidianService;
+import com.interviewassistant.service.SmartConnectionsIndexService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,7 @@ import java.util.List;
 public class KnowledgeController {
 
     private final ObsidianService obsidianService;
+    private final SmartConnectionsIndexService smartConnectionsIndexService;
 
     @GetMapping("/notes")
     public ApiResponse<List<NoteItem>> listNotes(
@@ -60,5 +64,31 @@ public class KnowledgeController {
             return ApiResponse.fail("VAULT_NOT_CONFIGURED", "Obsidian Vault 未配置，请先在设置页配置路径");
         }
         return ApiResponse.ok(obsidianService.searchNotes(keyword));
+    }
+
+    @GetMapping("/smart-connections/status")
+    public ApiResponse<SmartConnectionsIndexStatus> smartConnectionsStatus() {
+        return ApiResponse.ok(smartConnectionsIndexService.status());
+    }
+
+    @GetMapping("/smart-connections/similar")
+    public ApiResponse<List<SmartConnectionSearchResult>> findSimilarBySmartConnectionsVector(
+            @RequestParam("id") String noteId,
+            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "includeBlocks", defaultValue = "false") boolean includeBlocks) {
+        return ApiResponse.ok(smartConnectionsIndexService.findSimilarToNote(noteId, limit, includeBlocks));
+    }
+
+    @GetMapping("/smart-connections/search")
+    public ApiResponse<List<SmartConnectionSearchResult>> searchBySmartConnectionsVector(
+            @RequestParam("query") String query,
+            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "includeBlocks", defaultValue = "true") boolean includeBlocks) {
+        try {
+            return ApiResponse.ok(smartConnectionsIndexService.search(query, limit, includeBlocks));
+        } catch (Exception e) {
+            log.warn("Smart Connections vector search failed", e);
+            return ApiResponse.fail("SMART_EMBEDDING_UNAVAILABLE", e.getMessage());
+        }
     }
 }

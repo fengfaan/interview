@@ -118,6 +118,24 @@ http://localhost:5173
 
 Vite 会把 `/api` 自动代理到后端服务。
 
+### 4. 可选：启动 Smart Connections 向量检索 sidecar
+
+如果希望复用 Obsidian Smart Connections 已生成的 `.smart-env` 向量索引做语义检索，另开一个终端：
+
+```bash
+cd tools/smart-embedding
+npm install
+npm start
+```
+
+sidecar 默认运行在：
+
+```text
+http://127.0.0.1:8765
+```
+
+它使用和 Smart Connections 默认一致的 `TaylorAI/bge-micro-v2` 模型，为查询文本生成 384 维向量。后端通过 `SMART_EMBEDDING_ENDPOINT` 调用它，默认值是 `http://127.0.0.1:8765/embed`。
+
 ## 第一次使用
 
 1. 打开 `http://localhost:5173`
@@ -140,6 +158,7 @@ Vite 会把 `/api` 自动代理到后端服务。
 | `PROMPT_DIR` | `prompts` | Prompt 模板目录 |
 | `AI_SYNC_TIMEOUT_MS` | `120000` | 同步 AI 请求超时时间 |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:8080` | 后端允许的前端来源 |
+| `SMART_EMBEDDING_ENDPOINT` | `http://127.0.0.1:8765/embed` | Smart Connections 查询向量生成服务 |
 
 设置页保存的 API Key、模型、AI 渠道和 Vault 路径会写入本地 `settings.properties`。后端启动日志会输出实际解析到的设置文件路径。
 
@@ -216,6 +235,9 @@ interviewAssistant/
 | `GET` | `/api/knowledge/note?id=...` | 获取笔记详情 |
 | `POST` | `/api/knowledge/notes` | 保存笔记到 Obsidian |
 | `GET` | `/api/knowledge/search` | 搜索知识库 |
+| `GET` | `/api/knowledge/smart-connections/status` | 查看 Smart Connections 本地索引状态 |
+| `GET` | `/api/knowledge/smart-connections/similar?id=...` | 用某篇笔记的已有向量找相似笔记 |
+| `GET` | `/api/knowledge/smart-connections/search?query=...` | 用自然语言查询 Smart Connections 向量索引 |
 | `GET` | `/api/settings/apikey` | 获取 API Key 脱敏状态 |
 | `POST` | `/api/settings/apikey` | 保存 API Key |
 | `GET` | `/api/settings/model` | 获取当前模型和渠道 |

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw test *)",
+      "Bash(./mvnw compile *)",
+      "mcp__zread__search_doc",
+      "mcp__zread__get_repo_structure",
+      "mcp__zread__read_file",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

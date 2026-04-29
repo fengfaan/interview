@@ -52,8 +52,7 @@ public class DeepDiveAgent {
         this.toolCallbacks = MethodToolCallbackProvider.builder()
                 .toolObjects(knowledgeTools)
                 .build()
-                .getToolCallbacks()
-                .toArray(new ToolCallback[0]);
+                .getToolCallbacks();
     }
 
     public SseEmitter execute(String question, List<String> expectedKeywords,
