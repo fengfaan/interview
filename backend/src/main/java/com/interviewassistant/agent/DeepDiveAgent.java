@@ -3,41 +3,57 @@ package com.interviewassistant.agent;
 import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.dto.interview.ChatMessage;
 import com.interviewassistant.dto.interview.DeepDiveContextType;
-import com.interviewassistant.dto.knowledge.NoteItem;
 import com.interviewassistant.service.AiGateway;
 import com.interviewassistant.service.InterviewAiService;
 import com.interviewassistant.service.ObsidianService;
 import com.interviewassistant.service.PromptService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class DeepDiveAgent {
 
+    private static final int MAX_TOOL_ROUNDS = 3;
+
     private final AiGateway aiGateway;
     private final PromptService promptService;
-    private final ObsidianService obsidianService;
     private final Executor executor;
     private final InterviewAiService interviewAiService;
+    private final ToolCallback[] toolCallbacks;
+    private final ObjectMapper objectMapper;
 
     public DeepDiveAgent(AiGateway aiGateway,
                          PromptService promptService,
-                         ObsidianService obsidianService,
                          @Qualifier("sseTaskExecutor") Executor executor,
-                         InterviewAiService interviewAiService) {
+                         InterviewAiService interviewAiService,
+                         KnowledgeTools knowledgeTools,
+                         ObjectMapper objectMapper) {
         this.aiGateway = aiGateway;
         this.promptService = promptService;
-        this.obsidianService = obsidianService;
         this.executor = executor;
         this.interviewAiService = interviewAiService;
+        this.objectMapper = objectMapper;
+        this.toolCallbacks = MethodToolCallbackProvider.builder()
+                .toolObjects(knowledgeTools)
+                .build()
+                .getToolCallbacks()
+                .toArray(new ToolCallback[0]);
     }
 
     public SseEmitter execute(String question, List<String> expectedKeywords,
@@ -46,36 +62,17 @@ public class DeepDiveAgent {
         SseEmitter emitter = SseUtils.createShortEmitter();
         executor.execute(() -> {
             try {
-                String prompt = interviewAiService.buildDeepDivePrompt(
+                String userPrompt = interviewAiService.buildDeepDivePrompt(
                         question, expectedKeywords, contextType, contextContent, messages);
 
-                String contextPreview = contextContent != null && contextContent.length() > 200
-                        ? contextContent.substring(0, 200)
-                        : (contextContent != null ? contextContent : "");
-                String latestQuestion = messages != null && !messages.isEmpty()
-                        ? messages.get(messages.size() - 1).getContent()
-                        : question;
+                String systemPrompt = promptService.load("interview/deep-dive-agent-system.md");
 
-                AgentDecision decision = decide(question, expectedKeywords, latestQuestion, contextPreview);
+                List<org.springframework.ai.chat.messages.Message> chatMessages = new ArrayList<>();
+                chatMessages.add(new SystemMessage(systemPrompt));
+                chatMessages.add(new UserMessage(userPrompt));
 
-                String finalPrompt = prompt;
-                if (decision.wantsSearch()) {
-                    List<NoteItem> notes = searchKnowledge(decision.getKeyword());
-                    if (!notes.isEmpty()) {
-                        String searchContext = buildSearchContext(notes);
-                        SseUtils.sendAgentStep(emitter, decision.getKeyword(),
-                                notes.stream().map(NoteItem::getTitle).collect(Collectors.toList()));
+                String finalPrompt = runReActLoop(emitter, chatMessages);
 
-                        finalPrompt = prompt + "\n\n【知识库检索结果（关键词：" + decision.getKeyword() + "）】\n"
-                                + searchContext
-                                + "\n请在回答中适当引用知识库中的相关内容，帮助候选人更深入理解。";
-                    }
-                    log.info("Agent decision: search_notes keyword={} notes={}", decision.getKeyword(), notes.size());
-                } else {
-                    log.info("Agent decision: answer_directly reason={}", decision.getReason());
-                }
-
-                String systemPrompt = promptService.load("interview/system.md");
                 aiGateway.streamText(emitter, systemPrompt, finalPrompt,
                         "深度追问生成失败", "启动深度追问失败");
             } catch (Exception e) {
@@ -86,53 +83,98 @@ public class DeepDiveAgent {
         return emitter;
     }
 
-    AgentDecision decide(String question, List<String> expectedKeywords,
-                         String latestQuestion, String contextPreview) {
-        try {
-            String userPrompt = promptService.render("interview/deep-dive-agent-decide.md", Map.of(
-                    "question", question,
-                    "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of(),
-                    "latestQuestion", latestQuestion != null ? latestQuestion : "",
-                    "contextPreview", contextPreview != null ? contextPreview : ""
-            ));
-            String systemPrompt = "你是一个决策助手。";
+    String runReActLoop(SseEmitter emitter,
+                        List<org.springframework.ai.chat.messages.Message> chatMessages) {
+        StringBuilder toolResults = new StringBuilder();
+        for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
+            ChatResponse response = aiGateway.callWithTools(chatMessages, toolCallbacks);
 
-            AiGateway.JsonResult<AgentDecision> result =
-                    aiGateway.generateJson(systemPrompt, userPrompt, AgentDecision.class);
-            return result.value();
+            if (response == null || response.getResult() == null
+                    || response.getResult().getOutput() == null) {
+                log.warn("Empty response from LLM at round {}", round);
+                break;
+            }
+
+            AssistantMessage assistant = response.getResult().getOutput();
+            if (!assistant.hasToolCalls()) {
+                break;
+            }
+
+            chatMessages.add(assistant);
+
+            List<ToolResponseMessage.ToolResponse> toolResponses = new ArrayList<>();
+            for (AssistantMessage.ToolCall toolCall : assistant.getToolCalls()) {
+                log.info("Agent tool call round={}: name={} args={}", round, toolCall.name(), toolCall.arguments());
+
+                String result = executeToolCall(toolCall);
+                toolResponses.add(new ToolResponseMessage.ToolResponse(
+                        toolCall.id(), toolCall.name(), result));
+
+                if ("searchNotes".equals(toolCall.name())) {
+                    sendAgentStepFromResult(emitter, toolCall.arguments(), result);
+                }
+
+                toolResults.append("\n\n【知识库检索结果（工具调用 ").append(round + 1).append("）】\n")
+                        .append(result);
+            }
+
+            ToolResponseMessage toolResponseMessage = ToolResponseMessage.builder()
+                    .responses(toolResponses)
+                    .build();
+            chatMessages.add(toolResponseMessage);
+        }
+
+        String originalUserPrompt = ((UserMessage) chatMessages.get(1)).getText();
+        if (toolResults.isEmpty()) {
+            return originalUserPrompt;
+        }
+        return originalUserPrompt + toolResults;
+    }
+
+    private String executeToolCall(AssistantMessage.ToolCall toolCall) {
+        for (ToolCallback callback : toolCallbacks) {
+            if (callback.getToolDefinition().name().equals(toolCall.name())) {
+                try {
+                    return callback.call(toolCall.arguments());
+                } catch (Exception e) {
+                    log.warn("Tool execution failed for {}: {}", toolCall.name(), e.getMessage());
+                    return "工具执行失败：" + e.getMessage() + "。请直接基于现有信息回答。";
+                }
+            }
+        }
+        return "未知工具：" + toolCall.name();
+    }
+
+    private void sendAgentStepFromResult(SseEmitter emitter, String arguments, String result) {
+        try {
+            String keyword = "";
+            JsonNode args = objectMapper.readTree(arguments);
+            if (args.has("keyword")) {
+                keyword = args.get("keyword").asText();
+            }
+            List<String> noteTitles = extractNoteTitles(result);
+            if (!keyword.isEmpty() && !noteTitles.isEmpty()) {
+                SseUtils.sendAgentStep(emitter, keyword, noteTitles);
+            }
         } catch (Exception e) {
-            log.warn("Agent decision failed, falling back to answer_directly: {}", e.getMessage());
-            AgentDecision fallback = new AgentDecision();
-            fallback.setAction("answer_directly");
-            fallback.setReason("决策失败，直接回答");
-            return fallback;
+            log.debug("Failed to parse tool call arguments for agent_step: {}", e.getMessage());
         }
     }
 
-    List<NoteItem> searchKnowledge(String keyword) {
-        try {
-            if (!obsidianService.isVaultConfigured()) {
-                return List.of();
+    List<String> extractNoteTitles(String searchResult) {
+        List<String> titles = new ArrayList<>();
+        for (String line : searchResult.split("\n")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("- ")) {
+                String rest = trimmed.substring(2);
+                int bracketIdx = rest.indexOf('[');
+                int parenIdx = rest.indexOf('(');
+                int endIdx = rest.length();
+                if (bracketIdx > 0) endIdx = Math.min(endIdx, bracketIdx);
+                if (parenIdx > 0) endIdx = Math.min(endIdx, parenIdx);
+                titles.add(rest.substring(0, endIdx).trim());
             }
-            return obsidianService.searchNotes(keyword);
-        } catch (Exception e) {
-            log.warn("Knowledge search failed for keyword '{}': {}", keyword, e.getMessage());
-            return List.of();
         }
-    }
-
-    String buildSearchContext(List<NoteItem> notes) {
-        if (notes == null || notes.isEmpty()) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        for (NoteItem note : notes) {
-            sb.append("- ").append(note.getTitle());
-            if (note.getTags() != null && !note.getTags().isEmpty()) {
-                sb.append(" [").append(String.join(", ", note.getTags())).append("]");
-            }
-            sb.append(" (").append(note.getId()).append(")\n");
-        }
-        return sb.toString();
+        return titles;
     }
 }
