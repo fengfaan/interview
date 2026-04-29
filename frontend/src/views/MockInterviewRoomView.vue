@@ -178,14 +178,6 @@
               <span v-else class="material-symbols-outlined text-base">bookmark_add</span>
               {{ saveAnswerState === 'saving' ? '保存中...' : saveAnswerState === 'saved' ? '已保存' : '保存到知识库' }}
             </button>
-            <button
-              v-if="store.recommendedAnswer && !store.isAnswerStreaming"
-              @click="deepDiveStore.openDeepDive('RECOMMENDED_ANSWER', store.recommendedAnswer)"
-              class="text-sm font-medium text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors flex items-center gap-1"
-            >
-              <span class="material-symbols-outlined text-base">forum</span>
-              深度追问
-            </button>
           </div>
         </div>
         <div class="p-6">
@@ -295,18 +287,36 @@
                 <span class="material-symbols-outlined text-base">psychology</span>
                 继续挑战
               </button>
-              <button
-                @click="deepDiveStore.openDeepDive('FEEDBACK', store.commentary)"
-                class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <span class="material-symbols-outlined text-base">forum</span>
-                深度追问
-              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <!-- Draggable deep-dive floating bubble -->
+    <div
+      v-if="canDeepDive"
+      class="fixed z-40"
+      :style="bubbleStyle"
+    >
+      <div
+        class="flex flex-col items-center"
+      >
+        <div
+          class="cursor-grab active:cursor-grabbing select-none touch-none text-on-surface-variant/40 hover:text-on-surface-variant pb-0.5"
+          @pointerdown="startBubbleDrag"
+        >
+          <span class="material-symbols-outlined text-sm">drag_handle</span>
+        </div>
+        <button
+          @click="handleBubbleClick"
+          class="bg-primary text-on-primary rounded-2xl w-14 h-14 shadow-lg hover:shadow-xl hover:opacity-90 transition-all flex items-center justify-center"
+        >
+          <span class="material-symbols-outlined text-2xl">forum</span>
+        </button>
+        <span class="text-xs text-on-surface-variant mt-1 font-label">深度追问</span>
+      </div>
+    </div>
+
     <DeepDiveDrawer />
   </div>
 </template>
@@ -326,6 +336,58 @@ const deepDiveStore = useDeepDiveStore()
 const copiedAnswer = ref(false)
 const saveFeedbackState = ref<'idle' | 'saving' | 'saved'>('idle')
 const saveAnswerState = ref<'idle' | 'saving' | 'saved'>('idle')
+
+// --- Draggable deep-dive bubble ---
+const bubblePos = ref({ x: window.innerWidth - 80, y: window.innerHeight - 140 })
+const bubbleDragged = ref(false)
+
+const canDeepDive = computed(() => {
+  return store.isStarted && !deepDiveStore.isOpen &&
+    ((store.recommendedAnswer != null && !store.isAnswerStreaming) ||
+     (store.feedbackExpanded && store.commentary != null && !store.isStreaming))
+})
+
+const bubbleStyle = computed(() => ({
+  left: `${bubblePos.value.x}px`,
+  top: `${bubblePos.value.y}px`,
+}))
+
+function clamp(val: number, min: number, max: number) {
+  return Math.min(Math.max(val, min), max)
+}
+
+function startBubbleDrag(e: PointerEvent) {
+  const startX = e.clientX
+  const startY = e.clientY
+  const startBx = bubblePos.value.x
+  const startBy = bubblePos.value.y
+  let moved = false
+
+  const onMove = (ev: PointerEvent) => {
+    const dx = ev.clientX - startX
+    const dy = ev.clientY - startY
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true
+    bubblePos.value = {
+      x: clamp(startBx + dx, 0, window.innerWidth - 70),
+      y: clamp(startBy + dy, 0, window.innerHeight - 90),
+    }
+  }
+  const onUp = () => {
+    if (moved) bubbleDragged.value = true
+    document.removeEventListener('pointermove', onMove)
+    document.removeEventListener('pointerup', onUp)
+  }
+  document.addEventListener('pointermove', onMove)
+  document.addEventListener('pointerup', onUp)
+}
+
+function handleBubbleClick() {
+  if (store.feedbackExpanded && store.commentary) {
+    deepDiveStore.openDeepDive('FEEDBACK', store.commentary)
+  } else if (store.recommendedAnswer) {
+    deepDiveStore.openDeepDive('RECOMMENDED_ANSWER', store.recommendedAnswer)
+  }
+}
 
 const DIRECTION_LABELS: Record<string, string> = {
   GO_BACKEND: 'Go 后端',
