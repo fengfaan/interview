@@ -47,6 +47,13 @@
             </div>
           </div>
 
+          <!-- Agent step info -->
+          <div v-if="store.agentStepInfo"
+               class="mx-4 mb-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+            已检索知识库「{{ store.agentStepInfo.keyword }}」：
+            {{ store.agentStepInfo.notes.join('、') }}
+          </div>
+
           <!-- Streaming message -->
           <div v-if="store.isStreaming" class="flex justify-start">
             <div class="max-w-[85%] bg-surface-container-high text-on-surface rounded-xl rounded-bl-sm px-4 py-3 text-sm">

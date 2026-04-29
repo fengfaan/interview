@@ -14,3 +14,8 @@ export interface DeepDiveRequest {
   contextContent: string
   messages: ChatMessage[]
 }
+
+export interface AgentStepInfo {
+  keyword: string
+  notes: string[]
+}

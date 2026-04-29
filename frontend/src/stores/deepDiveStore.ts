@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { DeepDiveContextType, ChatMessage } from '../types/deepDive'
+import type { DeepDiveContextType, ChatMessage, AgentStepInfo } from '../types/deepDive'
 import * as api from '../api/deepDiveApi'
 
 export const useDeepDiveStore = defineStore('deepDive', () => {
@@ -11,6 +11,7 @@ export const useDeepDiveStore = defineStore('deepDive', () => {
   const inputText = ref('')
   const isStreaming = ref(false)
   const streamingContent = ref('')
+  const agentStepInfo = ref<AgentStepInfo | null>(null)
 
   function openDeepDive(type: DeepDiveContextType, content: string) {
     if (sourceType.value !== type || contextContent.value !== content) {
@@ -32,6 +33,7 @@ export const useDeepDiveStore = defineStore('deepDive', () => {
     inputText.value = ''
     isStreaming.value = true
     streamingContent.value = ''
+    agentStepInfo.value = null
 
     try {
       await api.streamDeepDive(
@@ -51,6 +53,9 @@ export const useDeepDiveStore = defineStore('deepDive', () => {
           inputText.value = question
           isStreaming.value = false
           console.error('Deep dive streaming error:', err)
+        },
+        (keyword, notes) => {
+          agentStepInfo.value = { keyword, notes }
         },
       )
 
@@ -77,11 +82,12 @@ export const useDeepDiveStore = defineStore('deepDive', () => {
     contextContent.value = ''
     streamingContent.value = ''
     isStreaming.value = false
+    agentStepInfo.value = null
   }
 
   return {
     isOpen, sourceType, contextContent, messages, inputText,
-    isStreaming, streamingContent,
+    isStreaming, streamingContent, agentStepInfo,
     openDeepDive, sendMessage, closeDeepDive, reset,
   }
 })
