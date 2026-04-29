@@ -8,13 +8,18 @@ import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.config.AiConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -92,6 +97,17 @@ public class AiGateway {
                         .call()
                         .content(),
                 "文本 AI 生成");
+    }
+
+    public ChatResponse callWithTools(List<Message> messages, ToolCallback... toolCallbacks) {
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(aiConfig.getCurrentModel())
+                .temperature(0.7)
+                .toolCallbacks(toolCallbacks)
+                .internalToolExecutionEnabled(false)
+                .build();
+        Prompt prompt = new Prompt(messages, options);
+        return callWithTimeout(() -> aiConfig.getCurrentChatModel().call(prompt), "工具调用 AI 生成");
     }
 
     public void streamText(SseEmitter emitter, String systemPrompt, String userPrompt,
