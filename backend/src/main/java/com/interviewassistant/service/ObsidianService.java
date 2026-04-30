@@ -3,6 +3,7 @@ package com.interviewassistant.service;
 import com.interviewassistant.dto.knowledge.CreateNoteRequest;
 import com.interviewassistant.dto.knowledge.NoteDetail;
 import com.interviewassistant.dto.knowledge.NoteItem;
+import com.interviewassistant.dto.knowledge.SmartConnectionSearchResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.stream.Stream;
 public class ObsidianService {
 
     private final SettingsService settingsService;
+    private final SmartConnectionsIndexService smartConnectionsIndexService;
 
     private static final String KNOWLEDGE_DIR = "面试知识库";
     private static final long MAX_FILE_SIZE = 1024 * 1024; // 1MB
@@ -120,6 +122,51 @@ public class ObsidianService {
         if (title == null || title.isBlank() || !Files.exists(knowledgeDir)) {
             return Collections.emptyList();
         }
+
+        // Try vector search first via Smart Connections
+        List<NoteItem> vectorResults = searchByVector(title);
+        if (!vectorResults.isEmpty()) {
+            return vectorResults;
+        }
+
+        // Fallback to text-based similarity
+        return searchTextSimilar(title, direction);
+    }
+
+    private List<NoteItem> searchByVector(String title) {
+        try {
+            List<SmartConnectionSearchResult> results = smartConnectionsIndexService.search(title, 5, false);
+            if (results.isEmpty()) {
+                return List.of();
+            }
+            Path vaultPath = getVaultPath();
+            Path knowledgeDir = vaultPath.resolve(KNOWLEDGE_DIR);
+            List<NoteItem> matched = new ArrayList<>();
+            for (SmartConnectionSearchResult result : results) {
+                if (result.getScore() < 0.8) {
+                    continue;
+                }
+                String notePath = result.getSourcePath();
+                if (notePath == null || notePath.isBlank()) {
+                    continue;
+                }
+                Path filePath = knowledgeDir.resolve(notePath);
+                if (!Files.exists(filePath)) {
+                    continue;
+                }
+                NoteItem item = parseNoteItem(filePath, knowledgeDir);
+                if (item != null) {
+                    matched.add(item);
+                }
+            }
+            return matched;
+        } catch (Exception e) {
+            log.debug("Vector search fallback to text: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<NoteItem> searchTextSimilar(String title, String direction) {
         String normalized = unquoteYamlScalar(title).trim().toLowerCase();
         Set<String> titleTerms = extractSignificantTerms(normalized);
         List<NoteItem> allNotes = listNotes(direction);
