@@ -114,10 +114,55 @@ public class ObsidianService {
         );
     }
 
+    public List<NoteItem> findSimilarNotes(String title, String direction) {
+        Path vaultPath = getVaultPath();
+        Path knowledgeDir = vaultPath.resolve(KNOWLEDGE_DIR);
+        if (title == null || title.isBlank() || !Files.exists(knowledgeDir)) {
+            return Collections.emptyList();
+        }
+        String normalized = unquoteYamlScalar(title).trim().toLowerCase();
+        Set<String> titleTerms = extractSignificantTerms(normalized);
+        List<NoteItem> allNotes = listNotes(direction);
+        List<NoteItem> similar = new ArrayList<>();
+        for (NoteItem note : allNotes) {
+            String noteTitle = unquoteYamlScalar(note.getTitle()).trim().toLowerCase();
+            if (noteTitle.equals(normalized) || noteTitle.contains(normalized) || normalized.contains(noteTitle)) {
+                similar.add(note);
+                continue;
+            }
+            Set<String> noteTerms = extractSignificantTerms(noteTitle);
+            noteTerms.retainAll(titleTerms);
+            if (noteTerms.size() >= Math.max(2, titleTerms.size() / 2)) {
+                similar.add(note);
+            }
+        }
+        return similar;
+    }
+
+    private Set<String> extractSignificantTerms(String text) {
+        Set<String> terms = new LinkedHashSet<>();
+        for (String term : text.split("[\\s,，。！？?；;：:、()（）\\[\\]{}<>《》\"'`/+·|\\\\]+")) {
+            String t = term.trim();
+            if (t.length() >= 2) {
+                terms.add(t);
+            }
+        }
+        for (int start = 0; start < text.length(); start++) {
+            for (int len = 2; len <= 4 && start + len <= text.length(); len++) {
+                String sub = text.substring(start, start + len);
+                if (sub.chars().allMatch(c -> Character.isLetterOrDigit(c) || c == '+' || c == '#')) {
+                    terms.add(sub);
+                }
+            }
+        }
+        return terms;
+    }
+
     public NoteItem createNote(CreateNoteRequest request) {
         Path vaultPath = getVaultPath();
         String subDir = sanitizeDirectoryName(DIRECTION_MAP.getOrDefault(request.getDirection(), request.getDirection()));
-        Path dirPath = vaultPath.resolve(KNOWLEDGE_DIR).resolve(subDir);
+        Path knowledgeDir = vaultPath.resolve(KNOWLEDGE_DIR);
+        Path dirPath = knowledgeDir.resolve(subDir);
 
         try {
             Files.createDirectories(dirPath);
@@ -139,7 +184,6 @@ public class ObsidianService {
             throw new RuntimeException("保存笔记失败: " + e.getMessage());
         }
 
-        Path knowledgeDir = vaultPath.resolve(KNOWLEDGE_DIR);
         return parseNoteItem(filePath, knowledgeDir);
     }
 

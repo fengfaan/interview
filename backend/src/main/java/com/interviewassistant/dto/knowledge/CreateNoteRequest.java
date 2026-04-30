@@ -19,4 +19,5 @@ public class CreateNoteRequest {
     private List<String> tags;
     private String questionId;
     private String source;
+    private Boolean force;
 }

@@ -46,11 +46,18 @@ public class KnowledgeController {
     }
 
     @PostMapping("/notes")
-    public ApiResponse<NoteItem> createNote(@Valid @RequestBody CreateNoteRequest request) {
+    public ApiResponse<?> createNote(@Valid @RequestBody CreateNoteRequest request) {
         if (!obsidianService.isVaultConfigured()) {
             return ApiResponse.fail("VAULT_NOT_CONFIGURED", "Obsidian Vault 未配置，请先在设置页配置路径");
         }
         try {
+            boolean force = Boolean.TRUE.equals(request.getForce());
+            if (!force) {
+                List<NoteItem> similar = obsidianService.findSimilarNotes(request.getTitle(), request.getDirection());
+                if (!similar.isEmpty()) {
+                    return ApiResponse.fail("DUPLICATE_FOUND", "发现相似笔记", similar);
+                }
+            }
             return ApiResponse.ok(obsidianService.createNote(request));
         } catch (Exception e) {
             log.error("Failed to create note", e);
