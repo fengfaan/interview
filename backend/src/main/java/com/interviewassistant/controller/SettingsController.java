@@ -13,6 +13,8 @@ import com.interviewassistant.dto.settings.PromptImproveResponse;
 import com.interviewassistant.dto.knowledge.VaultConfigRequest;
 import com.interviewassistant.dto.knowledge.VaultConfigResponse;
 import com.interviewassistant.dto.settings.PromptSaveRequest;
+import com.interviewassistant.dto.settings.ModelHealthEntry;
+import com.interviewassistant.ai.circuitbreaker.ModelCircuitBreaker;
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.service.SettingsService;
@@ -31,6 +33,7 @@ public class SettingsController {
     private final SettingsService settingsService;
     private final PromptService promptService;
     private final AiGateway aiGateway;
+    private final ModelCircuitBreaker circuitBreaker;
 
     @GetMapping("/apikey")
     public ApiResponse<ApiKeyResponse> getApiKey(@RequestParam(value = "provider", required = false) String provider) {
@@ -65,6 +68,19 @@ public class SettingsController {
     public ApiResponse<ModelResponse> saveModel(@Valid @RequestBody ModelRequest request) {
         settingsService.saveModel(request.getProvider(), request.getModel());
         return getModel(null);
+    }
+
+    @GetMapping("/model-health")
+    public ApiResponse<List<ModelHealthEntry>> getModelHealth() {
+        String provider = settingsService.getCurrentProvider();
+        java.util.List<String> models = new java.util.ArrayList<>(settingsService.getModelOptions(provider));
+        String otherProvider = AiConfig.PROVIDER_OPENROUTER.equals(provider)
+                ? AiConfig.PROVIDER_ZHIPU : AiConfig.PROVIDER_OPENROUTER;
+        models.addAll(settingsService.getModelOptions(otherProvider));
+        List<ModelHealthEntry> health = circuitBreaker.getHealthForAll(models).stream()
+                .map(e -> new ModelHealthEntry(e.model(), e.state().name(), e.failureCount(), e.openedAt()))
+                .collect(java.util.stream.Collectors.toList());
+        return ApiResponse.ok(health);
     }
 
     @GetMapping("/prompts")
