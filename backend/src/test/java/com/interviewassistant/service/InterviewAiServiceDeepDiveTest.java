@@ -1,5 +1,7 @@
 package com.interviewassistant.service;
 
+import com.interviewassistant.ai.gateway.AiGateway;
+import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.dto.interview.ChatMessage;
 import com.interviewassistant.dto.interview.ChatRole;
 import com.interviewassistant.dto.interview.DeepDiveContextType;
