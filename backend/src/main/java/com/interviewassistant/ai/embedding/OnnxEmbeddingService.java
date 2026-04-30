@@ -66,9 +66,12 @@ public class OnnxEmbeddingService {
             BertTokenizer.Tokenization tok = tokenizer.tokenize(text, MAX_SEQ_LENGTH);
             OnnxTensor inputIdsTensor = OnnxTensor.createTensor(env, new long[][]{tok.inputIds()});
             OnnxTensor attentionMaskTensor = OnnxTensor.createTensor(env, new long[][]{tok.attentionMask()});
+            long[] tokenTypeIds = new long[tok.inputIds().length];
+            OnnxTensor tokenTypeIdsTensor = OnnxTensor.createTensor(env, new long[][]{tokenTypeIds});
             Map<String, OnnxTensor> inputs = Map.of(
                     "input_ids", inputIdsTensor,
-                    "attention_mask", attentionMaskTensor
+                    "attention_mask", attentionMaskTensor,
+                    "token_type_ids", tokenTypeIdsTensor
             );
             try (OrtSession.Result result = session.run(inputs)) {
                 float[][][] output = (float[][][]) result.get(0).getValue();
