@@ -3,6 +3,7 @@ package com.interviewassistant.service;
 import com.interviewassistant.dto.knowledge.CreateNoteRequest;
 import com.interviewassistant.dto.knowledge.NoteDetail;
 import com.interviewassistant.dto.knowledge.NoteItem;
+import com.interviewassistant.dto.knowledge.SimilarNotesResult;
 import com.interviewassistant.dto.knowledge.SmartConnectionSearchResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -116,21 +117,24 @@ public class ObsidianService {
         );
     }
 
-    public List<NoteItem> findSimilarNotes(String title, String direction) {
+    public SimilarNotesResult findSimilarNotes(String title, String direction) {
         Path vaultPath = getVaultPath();
         Path knowledgeDir = vaultPath.resolve(KNOWLEDGE_DIR);
         if (title == null || title.isBlank() || !Files.exists(knowledgeDir)) {
-            return Collections.emptyList();
+            return new SimilarNotesResult("none", Collections.emptyList());
         }
 
-        // Try vector search first via Smart Connections
         List<NoteItem> vectorResults = searchByVector(title);
         if (!vectorResults.isEmpty()) {
-            return vectorResults;
+            return new SimilarNotesResult("vector", vectorResults);
         }
 
-        // Fallback to text-based similarity
-        return searchTextSimilar(title, direction);
+        List<NoteItem> textResults = searchTextSimilar(title, direction);
+        if (!textResults.isEmpty()) {
+            return new SimilarNotesResult("text", textResults);
+        }
+
+        return new SimilarNotesResult("none", Collections.emptyList());
     }
 
     private List<NoteItem> searchByVector(String title) {

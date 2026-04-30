@@ -4,6 +4,7 @@ import com.interviewassistant.common.ApiResponse;
 import com.interviewassistant.dto.knowledge.CreateNoteRequest;
 import com.interviewassistant.dto.knowledge.NoteDetail;
 import com.interviewassistant.dto.knowledge.NoteItem;
+import com.interviewassistant.dto.knowledge.SimilarNotesResult;
 import com.interviewassistant.dto.knowledge.SmartConnectionSearchResult;
 import com.interviewassistant.dto.knowledge.SmartConnectionsIndexStatus;
 import com.interviewassistant.service.ObsidianService;
@@ -53,9 +54,10 @@ public class KnowledgeController {
         try {
             boolean force = Boolean.TRUE.equals(request.getForce());
             if (!force) {
-                List<NoteItem> similar = obsidianService.findSimilarNotes(request.getTitle(), request.getDirection());
-                if (!similar.isEmpty()) {
-                    return ApiResponse.fail("DUPLICATE_FOUND", "发现相似笔记", similar);
+                SimilarNotesResult similar = obsidianService.findSimilarNotes(request.getTitle(), request.getDirection());
+                if (!similar.getNotes().isEmpty()) {
+                    String method = "vector".equals(similar.getSearchMethod()) ? "向量搜索" : "文本匹配";
+                    return ApiResponse.fail("DUPLICATE_FOUND", "通过" + method + "发现相似笔记", similar);
                 }
             }
             return ApiResponse.ok(obsidianService.createNote(request));
