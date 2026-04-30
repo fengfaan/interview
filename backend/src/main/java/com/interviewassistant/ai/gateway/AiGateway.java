@@ -1,6 +1,8 @@
 package com.interviewassistant.ai.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interviewassistant.ai.circuitbreaker.ModelCircuitBreaker;
+import com.interviewassistant.ai.circuitbreaker.FallbackService;
 import com.interviewassistant.ai.exception.AiResponseFormatException;
 import com.interviewassistant.ai.util.AiErrorUtils;
 import com.interviewassistant.ai.util.JsonOutputUtils;
@@ -34,6 +36,8 @@ public class AiGateway {
 
     private final AiConfig aiConfig;
     private final ObjectMapper objectMapper;
+    private final ModelCircuitBreaker circuitBreaker;
+    private final FallbackService fallbackService;
     private static final int JSON_GENERATION_ATTEMPTS = 2;
 
     @Value("${app.ai.sync-timeout-ms:120000}")
@@ -43,6 +47,7 @@ public class AiGateway {
     }
 
     public <T> JsonResult<T> generateJson(String systemPrompt, String userPrompt, Class<T> responseType) {
+        ensureModelAvailable();
         var converter = new BeanOutputConverter<>(responseType);
         AiResponseFormatException lastFormatError = null;
         for (int attempt = 1; attempt <= JSON_GENERATION_ATTEMPTS; attempt++) {
@@ -63,10 +68,12 @@ public class AiGateway {
                 }
                 T value = objectMapper.readValue(json, responseType);
                 String actualModel = response.getMetadata() != null ? response.getMetadata().getModel() : null;
+                recordSuccess();
                 return new JsonResult<>(value, actualModel);
             } catch (AiResponseFormatException e) {
                 lastFormatError = e;
             } catch (Exception e) {
+                recordIfRetryable(e);
                 lastFormatError = new AiResponseFormatException(
                         "AI_RESPONSE_FORMAT_ERROR",
                         "AI 返回内容格式不符合要求，请重试；如果频繁出现，请切换模型或优化提示词。",
@@ -83,35 +90,60 @@ public class AiGateway {
     }
 
     public String generateText(String userPrompt) {
-        return callWithTimeout(() -> aiConfig.getCurrentChatClient().prompt()
-                        .user(userPrompt)
-                        .call()
-                        .content(),
-                "文本 AI 生成");
+        ensureModelAvailable();
+        try {
+            String result = callWithTimeout(() -> aiConfig.getCurrentChatClient().prompt()
+                            .user(userPrompt)
+                            .call()
+                            .content(),
+                    "文本 AI 生成");
+            recordSuccess();
+            return result;
+        } catch (Exception e) {
+            recordIfRetryable(e);
+            throw e;
+        }
     }
 
     public String generateText(String systemPrompt, String userPrompt) {
-        return callWithTimeout(() -> aiConfig.getCurrentChatClient().prompt()
-                        .system(systemPrompt)
-                        .user(userPrompt)
-                        .call()
-                        .content(),
-                "文本 AI 生成");
+        ensureModelAvailable();
+        try {
+            String result = callWithTimeout(() -> aiConfig.getCurrentChatClient().prompt()
+                            .system(systemPrompt)
+                            .user(userPrompt)
+                            .call()
+                            .content(),
+                    "文本 AI 生成");
+            recordSuccess();
+            return result;
+        } catch (Exception e) {
+            recordIfRetryable(e);
+            throw e;
+        }
     }
 
     public ChatResponse callWithTools(List<Message> messages, ToolCallback... toolCallbacks) {
-        OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .model(aiConfig.getCurrentModel())
-                .temperature(0.7)
-                .toolCallbacks(toolCallbacks)
-                .internalToolExecutionEnabled(false)
-                .build();
-        Prompt prompt = new Prompt(messages, options);
-        return callWithTimeout(() -> aiConfig.getCurrentChatModel().call(prompt), "工具调用 AI 生成");
+        ensureModelAvailable();
+        try {
+            OpenAiChatOptions options = OpenAiChatOptions.builder()
+                    .model(aiConfig.getCurrentModel())
+                    .temperature(0.7)
+                    .toolCallbacks(toolCallbacks)
+                    .internalToolExecutionEnabled(false)
+                    .build();
+            Prompt prompt = new Prompt(messages, options);
+            ChatResponse result = callWithTimeout(() -> aiConfig.getCurrentChatModel().call(prompt), "工具调用 AI 生成");
+            recordSuccess();
+            return result;
+        } catch (Exception e) {
+            recordIfRetryable(e);
+            throw e;
+        }
     }
 
     public void streamText(SseEmitter emitter, String systemPrompt, String userPrompt,
                            String failureMessage, String startupFailureMessage) {
+        ensureModelAvailable();
         try {
             AtomicBoolean closed = new AtomicBoolean(false);
             Disposable subscription = aiConfig.getCurrentChatClient().prompt()
@@ -126,6 +158,7 @@ public class AiGateway {
                                 }
                             },
                             error -> {
+                                recordIfRetryable(error);
                                 if (!closed.get()) {
                                     sendStreamError(emitter, error, failureMessage);
                                 } else {
@@ -134,6 +167,7 @@ public class AiGateway {
                             },
                             () -> {
                                 if (!closed.get()) {
+                                    recordSuccess();
                                     SseUtils.sendDone(emitter);
                                 }
                             }
@@ -149,6 +183,7 @@ public class AiGateway {
                 cancelUpstream.run();
             });
         } catch (Exception e) {
+            recordIfRetryable(e);
             sendStreamStartupError(emitter, e, startupFailureMessage);
         }
     }
@@ -168,6 +203,47 @@ public class AiGateway {
                 throw runtimeException;
             }
             throw new RuntimeException(operationName + "失败", cause);
+        }
+    }
+
+    private void ensureModelAvailable() {
+        String currentModel = aiConfig.getCurrentModel();
+        if (circuitBreaker.isOpen(currentModel)) {
+            String fallback = fallbackService.fallback(currentModel);
+            if (fallback == null) {
+                throw new RuntimeException("所有 AI 模型均不可用，请稍后重试");
+            }
+        }
+    }
+
+    private void recordSuccess() {
+        circuitBreaker.recordSuccess(aiConfig.getCurrentModel());
+    }
+
+    private boolean isRetryableError(Throwable error) {
+        return AiErrorUtils.isRateLimit(error) || AiErrorUtils.isNetworkError(error)
+                || is5xxError(error);
+    }
+
+    private boolean is5xxError(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toLowerCase();
+                if (normalized.contains("500") || normalized.contains("502")
+                        || normalized.contains("503") || normalized.contains("504")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private void recordIfRetryable(Throwable error) {
+        if (isRetryableError(error)) {
+            circuitBreaker.recordFailure(aiConfig.getCurrentModel());
         }
     }
 
