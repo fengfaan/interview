@@ -2,6 +2,7 @@ package com.interviewassistant.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interviewassistant.ai.embedding.OnnxEmbeddingService;
 import com.interviewassistant.dto.knowledge.SmartConnectionSearchResult;
 import com.interviewassistant.dto.knowledge.SmartConnectionsIndexStatus;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ public class SmartConnectionsIndexService {
 
     private final SettingsService settingsService;
     private final ObjectMapper objectMapper;
-    private final SmartEmbeddingClient smartEmbeddingClient;
+    private final OnnxEmbeddingService onnxEmbeddingService;
 
     private static final String SMART_ENV_DIR = ".smart-env";
     private static final String MULTI_DIR = "multi";
@@ -102,7 +103,7 @@ public class SmartConnectionsIndexService {
             return List.of();
         }
 
-        SmartEmbeddingClient.EmbeddingResult embedding = smartEmbeddingClient.embed(query);
+        OnnxEmbeddingService.EmbeddingResult embedding = onnxEmbeddingService.embed(query);
         int safeLimit = Math.max(1, Math.min(limit == null ? DEFAULT_LIMIT : limit, MAX_LIMIT));
         return searchByVector(embedding.model(), embedding.vector(), safeLimit, includeBlocks);
     }

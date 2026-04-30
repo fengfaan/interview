@@ -4,7 +4,6 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtAllocator;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +37,7 @@ public class OnnxEmbeddingService {
             Path modelPath = extractResourceToTemp(MODEL_RESOURCE, "embedding-model", ".onnx");
             OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
             opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT);
-            OrtAllocator allocator = env.getAllocator();
-            this.session = new OrtSession(env, modelPath.toString(), allocator, opts);
+            this.session = env.createSession(modelPath.toString(), opts);
             this.tokenizer = new BertTokenizer("classpath:" + TOKENIZER_RESOURCE, true);
             log.info("ONNX embedding model loaded: dims={}, model={}", EXPECTED_DIMS, MODEL_NAME);
         } catch (Exception e) {

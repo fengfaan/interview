@@ -1,6 +1,7 @@
 package com.interviewassistant.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interviewassistant.ai.embedding.OnnxEmbeddingService;
 import com.interviewassistant.dto.knowledge.SmartConnectionSearchResult;
 import com.interviewassistant.dto.knowledge.SmartConnectionsIndexStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,13 +29,13 @@ class SmartConnectionsIndexServiceTest {
     private SettingsService settingsService;
 
     @Mock
-    private SmartEmbeddingClient smartEmbeddingClient;
+    private OnnxEmbeddingService onnxEmbeddingService;
 
     private SmartConnectionsIndexService service;
 
     @BeforeEach
     void setUp() {
-        service = new SmartConnectionsIndexService(settingsService, new ObjectMapper(), smartEmbeddingClient);
+        service = new SmartConnectionsIndexService(settingsService, new ObjectMapper(), onnxEmbeddingService);
         when(settingsService.getVaultPath()).thenReturn(vaultDir.toString());
     }
 
@@ -77,8 +78,8 @@ class SmartConnectionsIndexServiceTest {
     @Test
     void search_embedsQueryAndSearchesSmartConnectionsVectors() throws Exception {
         writeSmartEnvIndex();
-        when(smartEmbeddingClient.embed("高并发 WebSocket"))
-                .thenReturn(new SmartEmbeddingClient.EmbeddingResult("TaylorAI/bge-micro-v2", new double[]{1.0, 0.0}));
+        when(onnxEmbeddingService.embed("高并发 WebSocket"))
+                .thenReturn(new OnnxEmbeddingService.EmbeddingResult("TaylorAI/bge-micro-v2", new double[]{1.0, 0.0}));
 
         List<SmartConnectionSearchResult> results = service.search("高并发 WebSocket", 2, false);
 
