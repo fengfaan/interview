@@ -2,6 +2,7 @@ package com.interviewassistant.common;
 
 import com.interviewassistant.ai.exception.AiResponseFormatException;
 import com.interviewassistant.ai.exception.PromptLoadException;
+import com.interviewassistant.ai.util.AiErrorUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

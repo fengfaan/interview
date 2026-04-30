@@ -1,4 +1,4 @@
-package com.interviewassistant.agent;
+package com.interviewassistant.ai.agent;
 
 import com.interviewassistant.dto.knowledge.NoteItem;
 import com.interviewassistant.service.ObsidianService;

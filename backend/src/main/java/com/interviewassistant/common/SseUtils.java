@@ -1,5 +1,6 @@
 package com.interviewassistant.common;
 
+import com.interviewassistant.ai.util.AiErrorUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;

@@ -1,4 +1,4 @@
-package com.interviewassistant.agent;
+package com.interviewassistant.ai.agent;
 
 import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.dto.interview.ChatMessage;
