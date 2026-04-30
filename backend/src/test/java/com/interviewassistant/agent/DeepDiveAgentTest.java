@@ -1,5 +1,6 @@
 package com.interviewassistant.agent;
 
+import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.dto.interview.ChatMessage;
 import com.interviewassistant.dto.interview.ChatRole;
 import com.interviewassistant.dto.interview.DeepDiveContextType;
@@ -8,13 +9,21 @@ import com.interviewassistant.service.AiGateway;
 import com.interviewassistant.service.InterviewAiService;
 import com.interviewassistant.service.ObsidianService;
 import com.interviewassistant.service.PromptService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -31,108 +40,109 @@ class DeepDiveAgentTest {
     @Mock private ObsidianService obsidianService;
     @Mock private InterviewAiService interviewAiService;
     private final Executor executor = Executors.newSingleThreadExecutor();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private KnowledgeTools knowledgeTools;
     private DeepDiveAgent agent;
 
     @BeforeEach
     void setUp() {
-        agent = new DeepDiveAgent(aiGateway, promptService, obsidianService, executor, interviewAiService);
+        knowledgeTools = new KnowledgeTools(obsidianService);
+        agent = new DeepDiveAgent(aiGateway, promptService, executor,
+                interviewAiService, knowledgeTools, objectMapper);
     }
 
     @Test
-    void decide_returnsAgentDecision_whenValidJson() {
-        AgentDecision decision = new AgentDecision();
-        decision.setAction("search_notes");
-        decision.setKeyword("B+树");
-        decision.setReason("用户追问B+树底层结构");
-
-        when(promptService.render(eq("interview/deep-dive-agent-decide.md"), anyMap())).thenReturn("rendered prompt");
-        when(aiGateway.generateJson(eq("你是一个决策助手。"), anyString(), eq(AgentDecision.class)))
-                .thenReturn(new AiGateway.JsonResult<>(decision, "test-model"));
-
-        AgentDecision result = agent.decide("什么是B+树", List.of("索引"), "B+树叶子节点", "上下文摘要...");
-        assertTrue(result.wantsSearch());
-        assertEquals("B+树", result.getKeyword());
+    void extractNoteTitles_parsesSearchResult() {
+        String result = "找到 2 条相关笔记：\n- B+树索引详解 [索引] (btree.md)\n- 红黑树对比 [树结构] (rbtree.md)\n";
+        List<String> titles = agent.extractNoteTitles(result);
+        assertEquals(List.of("B+树索引详解", "红黑树对比"), titles);
     }
 
     @Test
-    void decide_answerDirectly_doesNotWantSearch() {
-        AgentDecision decision = new AgentDecision();
-        decision.setAction("answer_directly");
-        decision.setReason("上下文已充分");
-
-        when(promptService.render(anyString(), anyMap())).thenReturn("prompt");
-        when(aiGateway.generateJson(anyString(), anyString(), eq(AgentDecision.class)))
-                .thenReturn(new AiGateway.JsonResult<>(decision, "test-model"));
-
-        AgentDecision result = agent.decide("Q", List.of(), "追问", "上下文");
-        assertFalse(result.wantsSearch());
+    void extractNoteTitles_returnsEmpty_whenNoMatches() {
+        List<String> titles = agent.extractNoteTitles("未找到相关笔记。");
+        assertTrue(titles.isEmpty());
     }
 
     @Test
-    void decide_fallsBackToAnswerDirectly_whenJsonParseFails() {
-        when(promptService.render(anyString(), anyMap())).thenReturn("prompt");
-        when(aiGateway.generateJson(anyString(), anyString(), eq(AgentDecision.class)))
-                .thenThrow(new RuntimeException("JSON parse failed"));
+    void runReActLoop_noToolCalls_returnsOriginalPrompt() {
+        SseEmitter emitter = SseUtils.createShortEmitter();
+        List<org.springframework.ai.chat.messages.Message> chatMessages = new ArrayList<>();
+        chatMessages.add(new SystemMessage("system"));
+        chatMessages.add(new UserMessage("user prompt"));
 
-        AgentDecision result = agent.decide("Q", List.of(), "追问", "上下文");
-        assertFalse(result.wantsSearch());
-        assertEquals("answer_directly", result.getAction());
+        AssistantMessage assistantNoTools = new AssistantMessage("这是回答");
+        ChatResponse response = new ChatResponse(List.of(new Generation(assistantNoTools)));
+        when(aiGateway.callWithTools(anyList(), any(ToolCallback[].class))).thenReturn(response);
+
+        String result = agent.runReActLoop(emitter, chatMessages);
+
+        assertEquals("user prompt", result);
     }
 
     @Test
-    void searchKnowledge_returnsNoteTitles() {
-        NoteItem note = new NoteItem("test.md", "B+树索引详解", "BACKEND", List.of("索引"), "2026-01-01", "test.md");
+    void runReActLoop_withToolCall_appendsResults() {
+        SseEmitter emitter = SseUtils.createShortEmitter();
+        List<org.springframework.ai.chat.messages.Message> chatMessages = new ArrayList<>();
+        chatMessages.add(new SystemMessage("system"));
+        chatMessages.add(new UserMessage("user prompt"));
+
+        AssistantMessage assistantWithTool = AssistantMessage.builder()
+                .content("")
+                .toolCalls(List.of(new AssistantMessage.ToolCall(
+                        "call_1", "function", "searchNotes", "{\"keyword\":\"B+树\"}")))
+                .build();
+        ChatResponse round1Response = new ChatResponse(List.of(new Generation(assistantWithTool)));
+
+        AssistantMessage assistantFinal = new AssistantMessage("B+树是一种平衡树...");
+        ChatResponse round2Response = new ChatResponse(List.of(new Generation(assistantFinal)));
+
+        when(aiGateway.callWithTools(anyList(), any(ToolCallback[].class)))
+                .thenReturn(round1Response, round2Response);
         when(obsidianService.isVaultConfigured()).thenReturn(true);
+        NoteItem note = new NoteItem("btree.md", "B+树索引详解", "BACKEND", List.of("索引"), "2026-01-01", "btree.md");
         when(obsidianService.searchNotes("B+树")).thenReturn(List.of(note));
 
-        List<NoteItem> results = agent.searchKnowledge("B+树");
-        assertEquals(1, results.size());
-        assertEquals("B+树索引详解", results.get(0).getTitle());
+        String result = agent.runReActLoop(emitter, chatMessages);
+
+        assertTrue(result.contains("知识库检索结果"));
+        assertTrue(result.contains("B+树索引详解"));
+        verify(obsidianService).searchNotes("B+树");
     }
 
     @Test
-    void searchKnowledge_returnsEmptyList_whenVaultNotConfigured() {
+    void runReActLoop_stopsAfterMaxRounds() {
+        SseEmitter emitter = SseUtils.createShortEmitter();
+        List<org.springframework.ai.chat.messages.Message> chatMessages = new ArrayList<>();
+        chatMessages.add(new SystemMessage("system"));
+        chatMessages.add(new UserMessage("user prompt"));
+
+        AssistantMessage assistantWithTool = AssistantMessage.builder()
+                .content("")
+                .toolCalls(List.of(new AssistantMessage.ToolCall(
+                        "call_1", "function", "searchNotes", "{\"keyword\":\"test\"}")))
+                .build();
+        ChatResponse alwaysToolCall = new ChatResponse(List.of(new Generation(assistantWithTool)));
+
+        when(aiGateway.callWithTools(anyList(), any(ToolCallback[].class)))
+                .thenReturn(alwaysToolCall);
         when(obsidianService.isVaultConfigured()).thenReturn(false);
 
-        List<NoteItem> results = agent.searchKnowledge("B+树");
-        assertTrue(results.isEmpty());
-    }
+        String result = agent.runReActLoop(emitter, chatMessages);
 
-    @Test
-    void searchKnowledge_returnsEmptyList_onException() {
-        when(obsidianService.isVaultConfigured()).thenReturn(true);
-        when(obsidianService.searchNotes(anyString())).thenThrow(new RuntimeException("vault error"));
-
-        List<NoteItem> results = agent.searchKnowledge("B+树");
-        assertTrue(results.isEmpty());
-    }
-
-    @Test
-    void buildSearchContext_formatsNotesCorrectly() {
-        NoteItem note = new NoteItem("btree.md", "B+树索引详解", "BACKEND", List.of("索引"), "2026-01-01", "btree.md");
-        String context = agent.buildSearchContext(List.of(note));
-        assertTrue(context.contains("B+树索引详解"));
-        assertTrue(context.contains("btree.md"));
-    }
-
-    @Test
-    void buildSearchContext_returnsEmptyString_whenNoNotes() {
-        String context = agent.buildSearchContext(List.of());
-        assertEquals("", context);
+        verify(aiGateway, times(3)).callWithTools(anyList(), any(ToolCallback[].class));
+        assertTrue(result.contains("工具调用 3"));
     }
 
     @Test
     void execute_answerDirectly_streamsDirectly() throws Exception {
-        AgentDecision decision = new AgentDecision();
-        decision.setAction("answer_directly");
-        decision.setReason("上下文已充分");
-
         when(interviewAiService.buildDeepDivePrompt(anyString(), any(), any(), anyString(), any()))
                 .thenReturn("built-prompt");
-        when(promptService.render(anyString(), anyMap())).thenReturn("decision-prompt");
-        when(aiGateway.generateJson(anyString(), anyString(), eq(AgentDecision.class)))
-                .thenReturn(new AiGateway.JsonResult<>(decision, "test-model"));
-        when(promptService.load("interview/system.md")).thenReturn("system-prompt");
+        when(promptService.load("interview/deep-dive-agent-system.md")).thenReturn("agent-system");
+
+        AssistantMessage assistantNoTools = new AssistantMessage("回答");
+        ChatResponse response = new ChatResponse(List.of(new Generation(assistantNoTools)));
+        when(aiGateway.callWithTools(anyList(), any(ToolCallback[].class))).thenReturn(response);
 
         ChatMessage msg = new ChatMessage();
         msg.setRole(ChatRole.USER);
@@ -143,26 +153,30 @@ class DeepDiveAgentTest {
         assertNotNull(emitter);
         Thread.sleep(300);
         verify(obsidianService, never()).searchNotes(anyString());
-        verify(aiGateway).streamText(any(SseEmitter.class), eq("system-prompt"), eq("built-prompt"), anyString(), anyString());
+        verify(aiGateway).streamText(any(SseEmitter.class), eq("agent-system"), eq("built-prompt"), anyString(), anyString());
     }
 
     @Test
     void execute_searchNotes_searchesAndStreams() throws Exception {
-        AgentDecision decision = new AgentDecision();
-        decision.setAction("search_notes");
-        decision.setKeyword("B+树");
-        decision.setReason("需要补充知识");
-
-        NoteItem note = new NoteItem("btree.md", "B+树索引详解", "BACKEND", List.of("索引"), "2026-01-01", "btree.md");
-
         when(interviewAiService.buildDeepDivePrompt(anyString(), any(), any(), anyString(), any()))
                 .thenReturn("built-prompt");
-        when(promptService.render(anyString(), anyMap())).thenReturn("decision-prompt");
-        when(aiGateway.generateJson(anyString(), anyString(), eq(AgentDecision.class)))
-                .thenReturn(new AiGateway.JsonResult<>(decision, "test-model"));
+        when(promptService.load("interview/deep-dive-agent-system.md")).thenReturn("agent-system");
+
+        AssistantMessage assistantWithTool = AssistantMessage.builder()
+                .content("")
+                .toolCalls(List.of(new AssistantMessage.ToolCall(
+                        "call_1", "function", "searchNotes", "{\"keyword\":\"B+树\"}")))
+                .build();
+        ChatResponse round1 = new ChatResponse(List.of(new Generation(assistantWithTool)));
+
+        AssistantMessage assistantFinal = new AssistantMessage("回答");
+        ChatResponse round2 = new ChatResponse(List.of(new Generation(assistantFinal)));
+
+        when(aiGateway.callWithTools(anyList(), any(ToolCallback[].class)))
+                .thenReturn(round1, round2);
         when(obsidianService.isVaultConfigured()).thenReturn(true);
+        NoteItem note = new NoteItem("btree.md", "B+树索引详解", "BACKEND", List.of("索引"), "2026-01-01", "btree.md");
         when(obsidianService.searchNotes("B+树")).thenReturn(List.of(note));
-        when(promptService.load("interview/system.md")).thenReturn("system-prompt");
 
         ChatMessage msg = new ChatMessage();
         msg.setRole(ChatRole.USER);
@@ -173,6 +187,6 @@ class DeepDiveAgentTest {
         assertNotNull(emitter);
         Thread.sleep(300);
         verify(obsidianService).searchNotes("B+树");
-        verify(aiGateway).streamText(any(SseEmitter.class), eq("system-prompt"), contains("B+树索引详解"), anyString(), anyString());
+        verify(aiGateway).streamText(any(SseEmitter.class), eq("agent-system"), contains("B+树索引详解"), anyString(), anyString());
     }
 }
