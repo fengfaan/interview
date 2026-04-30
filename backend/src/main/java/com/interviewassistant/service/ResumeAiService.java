@@ -1,5 +1,7 @@
 package com.interviewassistant.service;
 
+import com.interviewassistant.ai.gateway.AiGateway;
+import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.dto.resume.AnalyzeResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

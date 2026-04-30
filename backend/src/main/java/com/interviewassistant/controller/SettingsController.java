@@ -1,7 +1,7 @@
 package com.interviewassistant.controller;
 
 import com.interviewassistant.common.ApiResponse;
-import com.interviewassistant.config.AiConfig;
+import com.interviewassistant.ai.config.AiConfig;
 import com.interviewassistant.dto.settings.ApiKeyRequest;
 import com.interviewassistant.dto.settings.ApiKeyResponse;
 import com.interviewassistant.dto.settings.ModelRequest;
@@ -13,8 +13,8 @@ import com.interviewassistant.dto.settings.PromptImproveResponse;
 import com.interviewassistant.dto.knowledge.VaultConfigRequest;
 import com.interviewassistant.dto.knowledge.VaultConfigResponse;
 import com.interviewassistant.dto.settings.PromptSaveRequest;
-import com.interviewassistant.service.AiGateway;
-import com.interviewassistant.service.PromptService;
+import com.interviewassistant.ai.gateway.AiGateway;
+import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.service.SettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

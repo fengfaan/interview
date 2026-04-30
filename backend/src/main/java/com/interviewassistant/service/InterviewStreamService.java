@@ -1,6 +1,8 @@
 package com.interviewassistant.service;
 
 import com.interviewassistant.agent.DeepDiveAgent;
+import com.interviewassistant.ai.gateway.AiGateway;
+import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.dto.interview.DeepDiveRequest;
 import com.interviewassistant.dto.interview.FeedbackRequest;

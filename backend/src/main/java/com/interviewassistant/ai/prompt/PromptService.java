@@ -1,4 +1,4 @@
-package com.interviewassistant.service;
+package com.interviewassistant.ai.prompt;
 
 import com.interviewassistant.ai.exception.PromptLoadException;
 import com.interviewassistant.dto.settings.PromptFileResponse;

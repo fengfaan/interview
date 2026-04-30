@@ -1,5 +1,7 @@
 package com.interviewassistant.service;
 
+import com.interviewassistant.ai.gateway.AiGateway;
+import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.dto.resume.RewriteStreamRequest;
 import org.springframework.beans.factory.annotation.Qualifier;

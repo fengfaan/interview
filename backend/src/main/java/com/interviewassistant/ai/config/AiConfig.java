@@ -1,4 +1,4 @@
-package com.interviewassistant.config;
+package com.interviewassistant.ai.config;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;

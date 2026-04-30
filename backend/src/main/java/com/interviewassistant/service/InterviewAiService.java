@@ -1,9 +1,11 @@
 package com.interviewassistant.service;
 
+import com.interviewassistant.ai.gateway.AiGateway;
+import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.ai.util.AiErrorUtils;
 import com.interviewassistant.ai.util.JsonOutputUtils;
 import com.interviewassistant.dto.interview.*;
-import com.interviewassistant.prompt.InterviewLabels;
+import com.interviewassistant.ai.prompt.InterviewLabels;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.json.JsonReadFeature;

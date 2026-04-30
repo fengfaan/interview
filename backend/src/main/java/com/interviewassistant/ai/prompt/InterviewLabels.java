@@ -1,4 +1,4 @@
-package com.interviewassistant.prompt;
+package com.interviewassistant.ai.prompt;
 
 import com.interviewassistant.dto.interview.InterviewDirection;
 import com.interviewassistant.dto.interview.InterviewLevel;

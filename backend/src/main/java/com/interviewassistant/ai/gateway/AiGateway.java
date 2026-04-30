@@ -1,11 +1,11 @@
-package com.interviewassistant.service;
+package com.interviewassistant.ai.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewassistant.ai.exception.AiResponseFormatException;
 import com.interviewassistant.ai.util.AiErrorUtils;
 import com.interviewassistant.ai.util.JsonOutputUtils;
 import com.interviewassistant.common.SseUtils;
-import com.interviewassistant.config.AiConfig;
+import com.interviewassistant.ai.config.AiConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
