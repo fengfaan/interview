@@ -1,9 +1,9 @@
 package com.interviewassistant.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.interviewassistant.common.AiResponseFormatException;
-import com.interviewassistant.common.AiErrorUtils;
-import com.interviewassistant.common.JsonOutputUtils;
+import com.interviewassistant.ai.exception.AiResponseFormatException;
+import com.interviewassistant.ai.util.AiErrorUtils;
+import com.interviewassistant.ai.util.JsonOutputUtils;
 import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.config.AiConfig;
 import lombok.RequiredArgsConstructor;

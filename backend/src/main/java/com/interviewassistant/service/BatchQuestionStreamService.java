@@ -1,7 +1,7 @@
 package com.interviewassistant.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.interviewassistant.common.AiErrorUtils;
+import com.interviewassistant.ai.util.AiErrorUtils;
 import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.dto.interview.*;
 import com.interviewassistant.dto.interview.BatchSseEvents.*;

@@ -1,4 +1,4 @@
-package com.interviewassistant.common;
+package com.interviewassistant.ai.exception;
 
 public class PromptLoadException extends RuntimeException {
     public PromptLoadException(String message) {

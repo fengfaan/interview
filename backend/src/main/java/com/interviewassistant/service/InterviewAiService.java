@@ -1,7 +1,7 @@
 package com.interviewassistant.service;
 
-import com.interviewassistant.common.AiErrorUtils;
-import com.interviewassistant.common.JsonOutputUtils;
+import com.interviewassistant.ai.util.AiErrorUtils;
+import com.interviewassistant.ai.util.JsonOutputUtils;
 import com.interviewassistant.dto.interview.*;
 import com.interviewassistant.prompt.InterviewLabels;
 import com.fasterxml.jackson.databind.ObjectMapper;

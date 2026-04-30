@@ -1,7 +1,7 @@
 package com.interviewassistant.controller;
 
 import com.interviewassistant.common.ApiResponse;
-import com.interviewassistant.common.AiErrorUtils;
+import com.interviewassistant.ai.util.AiErrorUtils;
 import com.interviewassistant.common.SseUtils;
 import com.interviewassistant.dto.interview.*;
 import com.interviewassistant.service.BatchQuestionStreamService;
