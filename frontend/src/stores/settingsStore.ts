@@ -20,6 +20,14 @@ const PROVIDER_PRESETS = {
     defaultModel: 'openrouter/free',
     apiKeyHelp: '可直接使用 OpenAI 兼容接口；免费模型更适合低频测试和原型验证。',
   },
+  mimo: {
+    label: '小米 MiMo',
+    docsUrl: 'https://platform.xiaomimimo.com/docs/zh-CN/quickstart/first-api-call',
+    docsLabel: '获取 API Key',
+    modelPlaceholder: '例如 mimo-v2-flash',
+    defaultModel: 'mimo-v2-flash',
+    apiKeyHelp: 'Token Plan 订阅模式，API Key 格式 tp-xxxxx，Base URL: token-plan-cn.xiaomimimo.com',
+  },
 } as const
 
 type ProviderKey = keyof typeof PROVIDER_PRESETS
