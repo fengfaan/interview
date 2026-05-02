@@ -37,6 +37,10 @@ public class AiConfig {
     public static final String DEFAULT_PROVIDER = PROVIDER_ZHIPU;
     public static final String DEFAULT_MODEL = "glm-4-flash";
     public static final String OPENROUTER_DEFAULT_MODEL = "openrouter/free";
+    public static final String PROVIDER_MIMO = "mimo";
+    private static final String MIMO_BASE_URL = "https://token-plan-cn.xiaomimimo.com/v1";
+    private static final String MIMO_COMPLETIONS_PATH = "/chat/completions";
+    public static final String MIMO_DEFAULT_MODEL = "mimo-v2-flash";
     private static final double TEMPERATURE = 0.7;
     private static final int CONNECT_TIMEOUT_MS = 20_000;
     private static final int READ_TIMEOUT_MS = 90_000;
@@ -156,23 +160,28 @@ public class AiConfig {
         }
         String normalized = provider.trim().toLowerCase();
         return switch (normalized) {
-            case PROVIDER_ZHIPU, PROVIDER_OPENROUTER -> normalized;
+            case PROVIDER_ZHIPU, PROVIDER_OPENROUTER, PROVIDER_MIMO -> normalized;
             default -> throw new IllegalArgumentException("不支持的 AI 渠道: " + provider);
         };
     }
 
     public static String defaultModelFor(String provider) {
-        return PROVIDER_OPENROUTER.equals(normalizeProvider(provider))
-                ? OPENROUTER_DEFAULT_MODEL
-                : DEFAULT_MODEL;
+        String p = normalizeProvider(provider);
+        if (PROVIDER_OPENROUTER.equals(p)) return OPENROUTER_DEFAULT_MODEL;
+        if (PROVIDER_MIMO.equals(p)) return MIMO_DEFAULT_MODEL;
+        return DEFAULT_MODEL;
     }
 
     private String baseUrlFor(String provider) {
-        return PROVIDER_OPENROUTER.equals(provider) ? OPENROUTER_BASE_URL : ZHIPU_BASE_URL;
+        if (PROVIDER_OPENROUTER.equals(provider)) return OPENROUTER_BASE_URL;
+        if (PROVIDER_MIMO.equals(provider)) return MIMO_BASE_URL;
+        return ZHIPU_BASE_URL;
     }
 
     private String completionsPathFor(String provider) {
-        return PROVIDER_OPENROUTER.equals(provider) ? OPENROUTER_COMPLETIONS_PATH : ZHIPU_COMPLETIONS_PATH;
+        if (PROVIDER_OPENROUTER.equals(provider)) return OPENROUTER_COMPLETIONS_PATH;
+        if (PROVIDER_MIMO.equals(provider)) return MIMO_COMPLETIONS_PATH;
+        return ZHIPU_COMPLETIONS_PATH;
     }
 
     private ClientHttpRequestFactory requestFactoryFor(String provider) {
