@@ -17,6 +17,8 @@ body {
 
 .markdown-body {
   @apply text-sm leading-7;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .markdown-body h2 {
@@ -59,4 +61,14 @@ body {
 
 .markdown-body pre code {
   @apply bg-transparent p-0 text-inherit;
+}
+
+.markdown-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.markdown-body img {
+  max-width: 100%;
 }

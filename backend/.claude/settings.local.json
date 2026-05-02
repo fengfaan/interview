@@ -11,7 +11,19 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(jar tf *)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(git push *)",
+      "WebSearch",
+      "Bash(./mvnw dependency:resolve *)",
+      "Bash(curl *)",
+      "Bash(javap -p -classpath /Users/fengfan/.m2/repository/com/microsoft/onnxruntime/onnxruntime/1.20.0/onnxruntime-1.20.0.jar ai.onnxruntime.OrtSession)",
+      "Bash(javap -p -classpath /Users/fengfan/.m2/repository/com/microsoft/onnxruntime/onnxruntime/1.20.0/onnxruntime-1.20.0.jar ai.onnxruntime.OrtAllocator)",
+      "Bash(javap -classpath /Users/fengfan/.m2/repository/com/microsoft/onnxruntime/onnxruntime/1.20.0/onnxruntime-1.20.0.jar ai.onnxruntime.OrtEnvironment)",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(timeout 30 mvn spring-boot:run)",
+      "Bash(git *)",
+      "Bash(./mvnw spring-boot:run *)"
     ]
   }
 }

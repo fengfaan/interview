@@ -1,5 +1,5 @@
 {
-  "focusAreas": "Go 语言基础语法、内置数据结构（slice/map/channel）、错误处理模式、接口与类型系统",
-  "scenarioPreference": "日常开发中常见的代码实现场景，如数据转换、并发控制、错误链处理",
-  "keywordStyle": "偏向 Go 语言特有术语，如 goroutine、channel、defer、interface 满足、零值"
+  "focusAreas" : "Go 语言基础语法、内置数据结构（slice/map/channel）、错误处理模式、接口与类型系统",
+  "scenarioPreference" : "日常开发中常见的代码实现场景，如数据转换、并发控制、错误链处理",
+  "keywordStyle" : "偏向 Go 语言特有术语，如 goroutine、channel、defer、interface 满足、零值"
 }

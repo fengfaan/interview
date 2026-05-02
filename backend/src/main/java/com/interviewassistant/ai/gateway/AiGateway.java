@@ -222,7 +222,18 @@ public class AiGateway {
 
     private boolean isRetryableError(Throwable error) {
         return AiErrorUtils.isRateLimit(error) || AiErrorUtils.isNetworkError(error)
-                || is5xxError(error);
+                || is5xxError(error) || isTimeout(error);
+    }
+
+    private boolean isTimeout(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof TimeoutException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private boolean is5xxError(Throwable error) {

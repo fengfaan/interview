@@ -32,7 +32,8 @@
       "Bash(chmod +x mvnw)",
       "Bash(./mvnw test *)",
       "Bash(npm --prefix /Users/fengfan/interviewAssistant/frontend run build)",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(mvn spring-boot:run)"
     ]
   }
 }

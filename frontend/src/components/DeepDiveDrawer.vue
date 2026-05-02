@@ -37,7 +37,7 @@
             :class="msg.role === 'USER' ? 'justify-end' : 'justify-start'"
           >
             <div
-              class="max-w-[85%] rounded-xl px-4 py-3 text-sm"
+              class="max-w-[85%] rounded-xl px-4 py-3 text-sm overflow-hidden min-w-0"
               :class="msg.role === 'USER'
                 ? 'bg-primary text-on-primary rounded-br-sm'
                 : 'bg-surface-container-high text-on-surface rounded-bl-sm'"
@@ -56,7 +56,7 @@
 
           <!-- Streaming message -->
           <div v-if="store.isStreaming" class="flex justify-start">
-            <div class="max-w-[85%] bg-surface-container-high text-on-surface rounded-xl rounded-bl-sm px-4 py-3 text-sm">
+            <div class="max-w-[85%] bg-surface-container-high text-on-surface rounded-xl rounded-bl-sm px-4 py-3 text-sm overflow-hidden min-w-0">
               <div v-if="store.streamingContent" class="markdown-body" v-html="renderMarkdown(store.streamingContent)"></div>
               <div v-else class="flex items-center gap-2 text-on-surface-variant">
                 <span class="material-symbols-outlined animate-spin text-sm">progress_activity</span>

@@ -342,9 +342,9 @@ const bubblePos = ref({ x: window.innerWidth - 80, y: window.innerHeight - 140 }
 const bubbleDragged = ref(false)
 
 const canDeepDive = computed(() => {
-  return store.isStarted && !deepDiveStore.isOpen &&
-    ((store.recommendedAnswer != null && !store.isAnswerStreaming) ||
-     (store.feedbackExpanded && store.commentary != null && !store.isStreaming))
+  if (!store.isStarted || deepDiveStore.isOpen) return false
+  return (store.recommendedAnswer != null && !store.isAnswerStreaming) ||
+         (store.commentary != null && !store.isStreaming)
 })
 
 const bubbleStyle = computed(() => ({
