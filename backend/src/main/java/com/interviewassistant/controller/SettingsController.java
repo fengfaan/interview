@@ -17,6 +17,13 @@ import com.interviewassistant.dto.settings.ModelHealthEntry;
 import com.interviewassistant.ai.circuitbreaker.ModelCircuitBreaker;
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
+import com.interviewassistant.ai.style.StyleProfile;
+import com.interviewassistant.ai.style.StyleService;
+import com.interviewassistant.dto.interview.InterviewDirection;
+import com.interviewassistant.dto.interview.InterviewLevel;
+import com.interviewassistant.dto.settings.StyleProfileRequest;
+import com.interviewassistant.dto.settings.StyleProfileResponse;
+import com.interviewassistant.dto.settings.StyleProfileSummary;
 import com.interviewassistant.service.SettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +41,7 @@ public class SettingsController {
     private final PromptService promptService;
     private final AiGateway aiGateway;
     private final ModelCircuitBreaker circuitBreaker;
+    private final StyleService styleService;
 
     @GetMapping("/apikey")
     public ApiResponse<ApiKeyResponse> getApiKey(@RequestParam(value = "provider", required = false) String provider) {
@@ -129,5 +137,52 @@ public class SettingsController {
         ));
         String improved = aiGateway.generateText(prompt);
         return ApiResponse.ok(new PromptImproveResponse(improved));
+    }
+
+    @GetMapping("/styles")
+    public ApiResponse<List<StyleProfileSummary>> listStyles() {
+        List<StyleProfileSummary> summaries = new java.util.ArrayList<>();
+        for (InterviewDirection dir : InterviewDirection.values()) {
+            for (InterviewLevel lvl : InterviewLevel.values()) {
+                StyleProfile profile = styleService.loadProfile(dir, lvl);
+                boolean hasCustomization = (profile.getFocusAreas() != null && !profile.getFocusAreas().isBlank())
+                        || (profile.getScenarioPreference() != null && !profile.getScenarioPreference().isBlank())
+                        || (profile.getKeywordStyle() != null && !profile.getKeywordStyle().isBlank());
+                summaries.add(new StyleProfileSummary(dir.name(), lvl.name(), hasCustomization));
+            }
+        }
+        return ApiResponse.ok(summaries);
+    }
+
+    @GetMapping("/styles/{direction}/{level}")
+    public ApiResponse<StyleProfileResponse> getStyleProfile(
+            @PathVariable String direction,
+            @PathVariable String level) {
+        InterviewDirection dir = InterviewDirection.valueOf(direction);
+        InterviewLevel lvl = InterviewLevel.valueOf(level);
+        StyleProfile profile = styleService.loadProfile(dir, lvl);
+        return ApiResponse.ok(new StyleProfileResponse(
+                dir.name(), lvl.name(),
+                profile.getFocusAreas() != null ? profile.getFocusAreas() : "",
+                profile.getScenarioPreference() != null ? profile.getScenarioPreference() : "",
+                profile.getKeywordStyle() != null ? profile.getKeywordStyle() : ""
+        ));
+    }
+
+    @PutMapping("/styles/{direction}/{level}")
+    public ApiResponse<StyleProfileResponse> saveStyleProfile(
+            @PathVariable String direction,
+            @PathVariable String level,
+            @Valid @RequestBody StyleProfileRequest request) {
+        InterviewDirection dir = InterviewDirection.valueOf(direction);
+        InterviewLevel lvl = InterviewLevel.valueOf(level);
+        StyleProfile profile = new StyleProfile(
+                request.getFocusAreas() != null ? request.getFocusAreas() : "",
+                request.getScenarioPreference() != null ? request.getScenarioPreference() : "",
+                request.getKeywordStyle() != null ? request.getKeywordStyle() : ""
+        );
+        styleService.saveProfile(dir, lvl, profile);
+        return ApiResponse.ok(new StyleProfileResponse(dir.name(), lvl.name(),
+                profile.getFocusAreas(), profile.getScenarioPreference(), profile.getKeywordStyle()));
     }
 }
