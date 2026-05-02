@@ -6,6 +6,9 @@
 ## 题型
 {{questionType}}
 
+## 风格指引
+{{styleInstruction}}
+
 ## 批次
 第 {{batchNumber}} 批。请覆盖本方向下不同知识点，避免题目同质化。
 本批题目从整体列表第 {{startIndex}} 题开始，请尽量避免和前面批次重复。

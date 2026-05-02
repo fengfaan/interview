@@ -5,6 +5,7 @@
 面试题目：{{question}}
 用户回答：{{answer}}
 期望关键词：{{expectedKeywords}}
+风格指引：{{styleInstruction}}
 
 请以 JSON 格式返回：
 {

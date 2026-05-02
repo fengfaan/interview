@@ -4,6 +4,7 @@
 题型：{{questionType}}
 面试题目：{{question}}
 考察要点：{{expectedKeywords}}
+风格指引：{{styleInstruction}}
 
 请使用 Markdown 输出，必须包含以下结构：
 

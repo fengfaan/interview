@@ -2,6 +2,7 @@
 
 原始面试题：{{question}}
 考察要点：{{expectedKeywords}}
+风格指引：{{styleInstruction}}
 
 候选人正在查看的上下文（{{contextType}}）：
 {{contextContent}}

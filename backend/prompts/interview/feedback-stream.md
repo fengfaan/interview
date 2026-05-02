@@ -5,6 +5,7 @@
 面试题目：{{question}}
 用户回答：{{answer}}
 期望关键词：{{expectedKeywords}}
+风格指引：{{styleInstruction}}
 
 请按以下 Markdown 格式输出：
 
