@@ -2,6 +2,7 @@ package com.interviewassistant.service;
 
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
+import com.interviewassistant.ai.style.StyleService;
 import com.interviewassistant.dto.interview.ChatMessage;
 import com.interviewassistant.dto.interview.ChatRole;
 import com.interviewassistant.dto.interview.DeepDiveContextType;
@@ -28,11 +29,14 @@ class InterviewAiServiceDeepDiveTest {
     @Mock
     private PromptService promptService;
 
+    @Mock
+    private StyleService styleService;
+
     private InterviewAiService service;
 
     @BeforeEach
     void setUp() {
-        service = new InterviewAiService(aiGateway, promptService, new ObjectMapper());
+        service = new InterviewAiService(aiGateway, promptService, styleService, new ObjectMapper());
     }
 
     @Test

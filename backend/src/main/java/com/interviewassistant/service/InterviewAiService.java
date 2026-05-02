@@ -2,6 +2,7 @@ package com.interviewassistant.service;
 
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
+import com.interviewassistant.ai.style.StyleService;
 import com.interviewassistant.ai.util.AiErrorUtils;
 import com.interviewassistant.ai.util.JsonOutputUtils;
 import com.interviewassistant.dto.interview.*;
@@ -24,6 +25,7 @@ public class InterviewAiService {
 
     private final AiGateway aiGateway;
     private final PromptService promptService;
+    private final StyleService styleService;
     private final ObjectMapper objectMapper;
     private final AtomicInteger questionCounter = new AtomicInteger(1);
     private static final int BATCH_SIZE = 5;
@@ -44,10 +46,11 @@ public class InterviewAiService {
                 .map(h -> "Q: " + h.getQuestion() + (h.isSkipped() ? " (已跳过)" : ""))
                 .collect(Collectors.joining("\n"));
 
-        String userMessage = promptService.render("interview/question.md", Map.of(
-                "direction", InterviewLabels.directionLabel(direction),
-                "questionType", InterviewLabels.questionTypeLabel(level),
-                "history", historySummary
+        String userMessage = promptService.render("interview/question.md", Map.ofEntries(
+                Map.entry("direction", InterviewLabels.directionLabel(direction)),
+                Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
+                Map.entry("history", historySummary),
+                Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
         ));
 
         AiGateway.JsonResult<QuestionAiResponse> result = aiGateway.generateJson(
@@ -66,12 +69,13 @@ public class InterviewAiService {
 
     public FeedbackResponse analyzeFeedback(InterviewDirection direction, InterviewLevel level, String question,
                                              String answer, List<String> expectedKeywords) {
-        String userMessage = promptService.render("interview/feedback-json.md", Map.of(
-                "direction", InterviewLabels.directionLabel(direction),
-                "questionType", InterviewLabels.questionTypeLabel(level),
-                "question", question,
-                "answer", answer,
-                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()
+        String userMessage = promptService.render("interview/feedback-json.md", Map.ofEntries(
+                Map.entry("direction", InterviewLabels.directionLabel(direction)),
+                Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
+                Map.entry("question", question),
+                Map.entry("answer", answer),
+                Map.entry("expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()),
+                Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
         ));
 
         return aiGateway.generateJson(
@@ -81,23 +85,25 @@ public class InterviewAiService {
     public String buildFeedbackStreamPrompt(InterviewDirection direction, InterviewLevel level, String question,
                                              String answer, List<String> expectedKeywords,
                                              String followUpQuestion) {
-        return promptService.render("interview/feedback-stream.md", Map.of(
-                "direction", InterviewLabels.directionLabel(direction),
-                "questionType", InterviewLabels.questionTypeLabel(level),
-                "question", question,
-                "answer", answer,
-                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of(),
-                "followUpQuestion", followUpQuestion != null ? followUpQuestion : "（请基于用户回答生成一个相关的进阶问题）"
+        return promptService.render("interview/feedback-stream.md", Map.ofEntries(
+                Map.entry("direction", InterviewLabels.directionLabel(direction)),
+                Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
+                Map.entry("question", question),
+                Map.entry("answer", answer),
+                Map.entry("expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()),
+                Map.entry("followUpQuestion", followUpQuestion != null ? followUpQuestion : "（请基于用户回答生成一个相关的进阶问题）"),
+                Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
         ));
     }
 
     public String buildRecommendedAnswerPrompt(InterviewDirection direction, InterviewLevel level, String question,
                                                List<String> expectedKeywords) {
-        return promptService.render("interview/recommended-answer.md", Map.of(
-                "direction", InterviewLabels.directionLabel(direction),
-                "questionType", InterviewLabels.questionTypeLabel(level),
-                "question", question,
-                "expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()
+        return promptService.render("interview/recommended-answer.md", Map.ofEntries(
+                Map.entry("direction", InterviewLabels.directionLabel(direction)),
+                Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
+                Map.entry("question", question),
+                Map.entry("expectedKeywords", expectedKeywords != null ? expectedKeywords : List.of()),
+                Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
         ));
     }
 
@@ -110,12 +116,13 @@ public class InterviewAiService {
                 .map(m -> (m.getRole() == ChatRole.USER ? "候选人" : "教练") + "：" + compactText(m.getContent(), MAX_DEEP_DIVE_MESSAGE_CHARS))
                 .collect(Collectors.joining("\n\n"));
 
-        return promptService.render("interview/deep-dive.md", Map.of(
-                "question", question,
-                "expectedKeywords", keywords,
-                "contextType", contextType == DeepDiveContextType.RECOMMENDED_ANSWER ? "推荐答案" : "反馈点评",
-                "contextContent", compactDeepDiveContext(contextContent, keywords, latestUserQuestion(compactMessages)),
-                "history", history
+        return promptService.render("interview/deep-dive.md", Map.ofEntries(
+                Map.entry("question", question),
+                Map.entry("expectedKeywords", keywords),
+                Map.entry("contextType", contextType == DeepDiveContextType.RECOMMENDED_ANSWER ? "推荐答案" : "反馈点评"),
+                Map.entry("contextContent", compactDeepDiveContext(contextContent, keywords, latestUserQuestion(compactMessages))),
+                Map.entry("history", history),
+                Map.entry("styleInstruction", "")
         ));
     }
 
@@ -364,12 +371,13 @@ public class InterviewAiService {
             }
             int batchCount = Math.min(remaining, BATCH_SIZE);
 
-            String userMessage = promptService.render("interview/batch-question.md", Map.of(
-                    "direction", InterviewLabels.directionLabel(direction),
-                    "questionType", InterviewLabels.questionTypeLabel(level),
-                    "count", String.valueOf(batchCount),
-                    "batchNumber", String.valueOf(batch + 1),
-                    "startIndex", String.valueOf(allQuestions.size() + 1)
+            String userMessage = promptService.render("interview/batch-question.md", Map.ofEntries(
+                    Map.entry("direction", InterviewLabels.directionLabel(direction)),
+                    Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
+                    Map.entry("count", String.valueOf(batchCount)),
+                    Map.entry("batchNumber", String.valueOf(batch + 1)),
+                    Map.entry("startIndex", String.valueOf(allQuestions.size() + 1)),
+                    Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
             ));
 
             List<BatchQuestionItem> batchResult = generateBatchWithRetry(userMessage, batch + 1);
@@ -399,12 +407,13 @@ public class InterviewAiService {
             return Collections.emptyList();
         }
 
-        String userMessage = promptService.render("interview/batch-question.md", Map.of(
-                "direction", InterviewLabels.directionLabel(direction),
-                "questionType", InterviewLabels.questionTypeLabel(level),
-                "count", String.valueOf(count),
-                "batchNumber", String.valueOf(batchNumber),
-                "startIndex", String.valueOf(startIndex)
+        String userMessage = promptService.render("interview/batch-question.md", Map.ofEntries(
+                Map.entry("direction", InterviewLabels.directionLabel(direction)),
+                Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
+                Map.entry("count", String.valueOf(count)),
+                Map.entry("batchNumber", String.valueOf(batchNumber)),
+                Map.entry("startIndex", String.valueOf(startIndex)),
+                Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
         ));
 
         List<BatchQuestionItem> batchResult = generateBatchWithRetry(userMessage, batchNumber);

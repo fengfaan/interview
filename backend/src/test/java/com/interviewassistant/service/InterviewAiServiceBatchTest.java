@@ -2,6 +2,7 @@ package com.interviewassistant.service;
 
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
+import com.interviewassistant.ai.style.StyleService;
 import com.interviewassistant.dto.interview.BatchQuestionItem;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewassistant.dto.interview.InterviewDirection;
@@ -17,6 +18,7 @@ import org.mockito.quality.Strictness;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -36,14 +38,18 @@ class InterviewAiServiceBatchTest {
     @Mock
     private PromptService promptService;
 
+    @Mock
+    private StyleService styleService;
+
     private InterviewAiService service;
 
     @BeforeEach
     void setUp() {
         when(promptService.load("interview/system.md")).thenReturn("You are an interviewer.");
         when(promptService.render(eq("interview/batch-question.md"), anyMap())).thenReturn("rendered prompt");
+        when(styleService.buildStyleInstruction(any(), any())).thenReturn("");
 
-        service = new InterviewAiService(aiGateway, promptService, new ObjectMapper());
+        service = new InterviewAiService(aiGateway, promptService, styleService, new ObjectMapper());
     }
 
     @Test
