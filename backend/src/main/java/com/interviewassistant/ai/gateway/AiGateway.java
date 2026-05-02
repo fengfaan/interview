@@ -49,6 +49,7 @@ public class AiGateway {
     public <T> JsonResult<T> generateJson(String systemPrompt, String userPrompt, Class<T> responseType) {
         ensureModelAvailable();
         var converter = new BeanOutputConverter<>(responseType);
+        logFinalPrompt("generateJson", systemPrompt, userPrompt + "\n\n" + converter.getFormat());
         AiResponseFormatException lastFormatError = null;
         for (int attempt = 1; attempt <= JSON_GENERATION_ATTEMPTS; attempt++) {
             ChatResponse response = callWithTimeout(() -> aiConfig.getCurrentChatClient().prompt()
@@ -91,6 +92,7 @@ public class AiGateway {
 
     public String generateText(String userPrompt) {
         ensureModelAvailable();
+        logFinalPrompt("generateText", null, userPrompt);
         try {
             String result = callWithTimeout(() -> aiConfig.getCurrentChatClient().prompt()
                             .user(userPrompt)
@@ -107,6 +109,7 @@ public class AiGateway {
 
     public String generateText(String systemPrompt, String userPrompt) {
         ensureModelAvailable();
+        logFinalPrompt("generateText", systemPrompt, userPrompt);
         try {
             String result = callWithTimeout(() -> aiConfig.getCurrentChatClient().prompt()
                             .system(systemPrompt)
@@ -124,6 +127,7 @@ public class AiGateway {
 
     public ChatResponse callWithTools(List<Message> messages, ToolCallback... toolCallbacks) {
         ensureModelAvailable();
+        logFinalPrompt("callWithTools", messages);
         try {
             OpenAiChatOptions options = OpenAiChatOptions.builder()
                     .model(aiConfig.getCurrentModel())
@@ -144,6 +148,7 @@ public class AiGateway {
     public void streamText(SseEmitter emitter, String systemPrompt, String userPrompt,
                            String failureMessage, String startupFailureMessage) {
         ensureModelAvailable();
+        logFinalPrompt("streamText", systemPrompt, userPrompt);
         try {
             AtomicBoolean closed = new AtomicBoolean(false);
             Disposable subscription = aiConfig.getCurrentChatClient().prompt()
@@ -222,7 +227,25 @@ public class AiGateway {
 
     private boolean isRetryableError(Throwable error) {
         return AiErrorUtils.isRateLimit(error) || AiErrorUtils.isNetworkError(error)
-                || is5xxError(error) || isTimeout(error);
+                || is5xxError(error) || isTimeout(error) || isModelUnavailable(error);
+    }
+
+    private boolean isModelUnavailable(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toLowerCase();
+                if (normalized.contains("not supported model")
+                        || normalized.contains("model not found")
+                        || normalized.contains("model is not available")
+                        || normalized.contains("model has been deprecated")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private boolean isTimeout(Throwable error) {
@@ -276,5 +299,17 @@ public class AiGateway {
             log.error("Failed to start AI stream", error);
             SseUtils.sendError(emitter, "AI_SERVICE_ERROR", fallbackMessage);
         }
+    }
+
+    private void logFinalPrompt(String operation, String systemPrompt, String userPrompt) {
+        log.info("\n========== AI PROMPT [{}] ==========\n[SYSTEM]\n{}\n[USER]\n{}\n========== END PROMPT ==========", operation, systemPrompt, userPrompt);
+    }
+
+    private void logFinalPrompt(String operation, List<Message> messages) {
+        StringBuilder sb = new StringBuilder();
+        for (Message msg : messages) {
+            sb.append("\n[").append(msg.getMessageType()).append("]\n").append(msg.getText());
+        }
+        log.info("\n========== AI PROMPT [{}] =========={}\n========== END PROMPT ==========", operation, sb);
     }
 }
