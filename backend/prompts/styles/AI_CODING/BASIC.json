@@ -1,0 +1,5 @@
+{
+  "focusAreas": "LLM 基础概念（Prompt Engineering/Token/上下文窗口）、API 调用模式（补全/对话/嵌入）、基础工具调用",
+  "scenarioPreference": "常见 AI 应用场景：问答系统、文本摘要、内容生成、简单 Agent",
+  "keywordStyle": "偏向 AI 应用术语，如 System Prompt、Temperature、Few-shot、RAG"
+}

@@ -1,0 +1,5 @@
+{
+  "focusAreas": "React 核心概念（JSX/组件/Props/State）、Hooks 使用规则、事件处理、条件渲染与列表渲染",
+  "scenarioPreference": "常见 UI 开发场景：表单管理、列表筛选、弹窗交互、路由导航",
+  "keywordStyle": "偏向 React 基础术语，如受控组件、单向数据流、re-render、key 稳定性"
+}

@@ -1,0 +1,5 @@
+{
+  "focusAreas": "存储引擎原理（InnoDB/MyISAM/RocksDB）、锁机制（行锁/间隙锁/意向锁）、WAL 与崩溃恢复、查询优化器",
+  "scenarioPreference": "高并发数据库场景：热点数据更新、大表 DDL、分库分表、读写分离延迟",
+  "keywordStyle": "偏向底层原理术语，如 redo log、undo log、next-key lock、change buffer、自适应哈希"
+}

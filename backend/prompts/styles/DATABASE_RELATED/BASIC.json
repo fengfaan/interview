@@ -1,0 +1,5 @@
+{
+  "focusAreas": "SQL 基础（JOIN/子查询/窗口函数）、索引原理（B+Tree/Hash）、事务 ACID、隔离级别",
+  "scenarioPreference": "常见数据库操作场景：多表关联查询、分页优化、数据去重、慢查询排查",
+  "keywordStyle": "偏向数据库基础术语，如聚簇索引、覆盖索引、脏读、幻读、MVCC"
+}

@@ -1,0 +1,5 @@
+{
+  "focusAreas": "React Fiber 架构、调度器与优先级队列、Lane 模型、Hooks 底层链表实现、并发模式（Suspense/Transition）",
+  "scenarioPreference": "大型前端应用性能优化场景：虚拟滚动、状态管理选型、SSR/SSG 混合渲染",
+  "keywordStyle": "偏向底层原理术语，如 Fiber 节点、Lane 优先级、时间切片、bailout 优化、hydrating"
+}

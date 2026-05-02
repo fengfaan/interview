@@ -1,0 +1,5 @@
+{
+  "focusAreas": "React 工程化实践（Monorepo/微前端）、状态管理方案（Zustand/Jotai/Redux Toolkit）、组件库设计、CI/CD 流水线",
+  "scenarioPreference": "企业级前端场景：后台管理系统、数据可视化大屏、低代码平台、跨端应用",
+  "keywordStyle": "偏向工程实践术语，如模块联邦、Design System、Tree Shaking、Bundle Analysis"
+}

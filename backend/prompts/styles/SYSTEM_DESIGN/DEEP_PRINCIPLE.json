@@ -1,0 +1,5 @@
+{
+  "focusAreas": "分布式共识算法（Raft/Paxos）、分布式事务（2PC/TCC/Saga）、数据分区与复制策略、多活架构",
+  "scenarioPreference": "大规模系统设计：全球分布式数据库、实时推荐系统、搜索引擎、流式计算平台",
+  "keywordStyle": "偏向深度架构术语，如向量时钟、Gossip 协议、LSM Tree、Bloom Filter、一致性哈希"
+}

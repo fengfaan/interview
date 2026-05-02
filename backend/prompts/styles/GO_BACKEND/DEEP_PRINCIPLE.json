@@ -1,0 +1,5 @@
+{
+  "focusAreas": "Go runtime 原理（GMP 调度模型、三色标记 GC、内存分配器）、并发原语底层实现、编译器优化",
+  "scenarioPreference": "高性能服务端场景，如百万连接网关、低延迟交易系统、大规模数据处理",
+  "keywordStyle": "偏向底层原理术语，如 GMP 模型、写屏障、span/mspan、STW、抢占式调度"
+}

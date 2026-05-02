@@ -1,0 +1,5 @@
+{
+  "focusAreas": "Transformer 架构原理、注意力机制、位置编码、训练与推理优化（量化/蒸馏/RLHF）、Embedding 空间",
+  "scenarioPreference": "复杂 AI 系统场景：多模态模型、长上下文处理、模型微调与评估、向量检索引擎",
+  "keywordStyle": "偏向 AI 底层术语，如 KV Cache、Flash Attention、LoRA、SFT、CoT 推理"
+}

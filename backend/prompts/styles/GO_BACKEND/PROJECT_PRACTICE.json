@@ -1,0 +1,5 @@
+{
+  "focusAreas": "Go 微服务架构设计、gRPC/Protobuf 实践、中间件集成（Kafka/Redis/etcd）、可观测性（OpenTelemetry）",
+  "scenarioPreference": "真实业务场景：订单系统、支付网关、实时推送服务、分布式任务调度",
+  "keywordStyle": "偏向工程实践术语，如服务拆分策略、优雅关停、连接池、熔断降级"
+}

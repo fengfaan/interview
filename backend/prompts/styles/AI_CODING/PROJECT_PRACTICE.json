@@ -1,0 +1,5 @@
+{
+  "focusAreas": "AI Agent 工程化（工具调用/ReAct/Memory）、RAG 架构设计（向量库/Chunk/检索策略）、Prompt 链与工作流编排、AI 应用可观测性",
+  "scenarioPreference": "真实 AI 产品场景：智能客服、代码助手、知识库问答、文档审核系统",
+  "keywordStyle": "偏向工程实践术语，如 Function Calling、Embedding 模型、Chunk 策略、Hallucination 检测"
+}
