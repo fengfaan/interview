@@ -154,7 +154,8 @@ public class ObsidianService {
                 if (notePath == null || notePath.isBlank()) {
                     continue;
                 }
-                Path filePath = knowledgeDir.resolve(notePath);
+                // Smart Connections stores paths relative to vault root (e.g. "面试知识库/Go-后端/note.md")
+                Path filePath = vaultPath.resolve(notePath);
                 if (!Files.exists(filePath)) {
                     continue;
                 }
@@ -165,7 +166,7 @@ public class ObsidianService {
             }
             return matched;
         } catch (Exception e) {
-            log.debug("Vector search fallback to text: {}", e.getMessage());
+            log.warn("Vector search failed, fallback to text: {}", e.getMessage());
             return List.of();
         }
     }
