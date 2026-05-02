@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import * as api from '../api/settingsApi'
-import type { PromptFile } from '../types/settings'
+import type { PromptFile, StyleProfile, StyleProfileSummary } from '../types/settings'
 
 const PROVIDER_PRESETS = {
   zhipu: {
@@ -63,6 +63,14 @@ export const useSettingsStore = defineStore('settings', () => {
   const promptDraft = ref('')
   const improveInstruction = ref('')
   const improvedDraft = ref('')
+
+  // Style profile state
+  const styleProfiles = ref<StyleProfileSummary[]>([])
+  const selectedStyleDirection = ref('GO_BACKEND')
+  const selectedStyleLevel = ref('BASIC')
+  const styleProfileDraft = ref<StyleProfile | null>(null)
+  const isStyleLoading = ref(false)
+  const isStyleSaving = ref(false)
 
   const selectedPrompt = computed(() =>
     promptFiles.value.find((file) => file.path === selectedPromptPath.value) || null,
@@ -321,6 +329,54 @@ export const useSettingsStore = defineStore('settings', () => {
     successMessage.value = '优化草稿已应用到编辑区，保存后才会正式生效'
   }
 
+  async function loadStyleProfiles() {
+    error.value = ''
+    try {
+      styleProfiles.value = await api.listStyleProfiles()
+    } catch (e: any) {
+      error.value = e.message || '加载风格配置失败'
+    }
+  }
+
+  async function selectStyleProfile(direction: string, level: string) {
+    selectedStyleDirection.value = direction
+    selectedStyleLevel.value = level
+    isStyleLoading.value = true
+    error.value = ''
+    try {
+      styleProfileDraft.value = await api.getStyleProfile(direction, level)
+    } catch (e: any) {
+      error.value = e.message || '加载风格配置失败'
+    } finally {
+      isStyleLoading.value = false
+    }
+  }
+
+  async function saveStyleProfileDraft() {
+    if (!styleProfileDraft.value) return
+    isStyleSaving.value = true
+    error.value = ''
+    successMessage.value = ''
+    try {
+      const saved = await api.saveStyleProfile(
+        selectedStyleDirection.value,
+        selectedStyleLevel.value,
+        {
+          focusAreas: styleProfileDraft.value.focusAreas,
+          scenarioPreference: styleProfileDraft.value.scenarioPreference,
+          keywordStyle: styleProfileDraft.value.keywordStyle,
+        }
+      )
+      styleProfileDraft.value = saved
+      successMessage.value = `${selectedStyleDirection.value} / ${selectedStyleLevel.value} 风格配置已保存`
+      await loadStyleProfiles()
+    } catch (e: any) {
+      error.value = e.message || '保存风格配置失败'
+    } finally {
+      isStyleSaving.value = false
+    }
+  }
+
   return {
     maskedKey, configured, isLoading, isSaving,
     isModelLoading, isModelSaving,
@@ -337,5 +393,8 @@ export const useSettingsStore = defineStore('settings', () => {
     selectProvider,
     loadPrompts, selectPrompt, savePrompt,
     improvePrompt, applyImprovedDraft,
+    styleProfiles, selectedStyleDirection, selectedStyleLevel, styleProfileDraft,
+    isStyleLoading, isStyleSaving,
+    loadStyleProfiles, selectStyleProfile, saveStyleProfileDraft,
   }
 })

@@ -47,3 +47,23 @@ export interface PromptImproveRequest {
 export interface PromptImproveResponse {
   content: string
 }
+
+export interface StyleProfileSummary {
+  direction: string
+  level: string
+  hasCustomization: boolean
+}
+
+export interface StyleProfile {
+  direction: string
+  level: string
+  focusAreas: string
+  scenarioPreference: string
+  keywordStyle: string
+}
+
+export interface StyleProfileSaveRequest {
+  focusAreas: string
+  scenarioPreference: string
+  keywordStyle: string
+}

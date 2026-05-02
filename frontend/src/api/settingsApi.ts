@@ -8,6 +8,9 @@ import type {
   PromptImproveRequest,
   PromptImproveResponse,
   PromptSaveRequest,
+  StyleProfileSummary,
+  StyleProfile,
+  StyleProfileSaveRequest,
 } from '../types/settings'
 
 const API_BASE = '/api/settings'
@@ -99,5 +102,30 @@ export async function saveVaultConfig(path: string): Promise<{ configured: boole
   })
   const json = await res.json()
   if (!json.success) throw new Error(json.message || '保存 Vault 配置失败')
+  return json.data
+}
+
+export async function listStyleProfiles(): Promise<StyleProfileSummary[]> {
+  const res = await fetch(`${API_BASE}/styles`)
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || '获取风格配置失败')
+  return json.data
+}
+
+export async function getStyleProfile(direction: string, level: string): Promise<StyleProfile> {
+  const res = await fetch(`${API_BASE}/styles/${encodeURIComponent(direction)}/${encodeURIComponent(level)}`)
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || '获取风格配置失败')
+  return json.data
+}
+
+export async function saveStyleProfile(direction: string, level: string, request: StyleProfileSaveRequest): Promise<StyleProfile> {
+  const res = await fetch(`${API_BASE}/styles/${encodeURIComponent(direction)}/${encodeURIComponent(level)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || '保存风格配置失败')
   return json.data
 }
