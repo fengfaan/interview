@@ -179,6 +179,89 @@
         </section>
       </div>
 
+      <!-- Style Profiles Card -->
+      <section class="mt-6 bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="material-symbols-outlined text-primary">palette</span>
+          <h3 class="font-headline font-bold text-on-surface">提示词风格</h3>
+        </div>
+        <p class="text-sm text-on-surface-variant mb-5 ml-9">
+          为不同的面试方向和题型定制出题风格，让题目更有针对性。保存后下一次 AI 请求立即生效。
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
+          <div>
+            <label class="text-xs font-label text-on-surface-variant block mb-2">面试方向</label>
+            <div class="flex flex-col gap-1.5">
+              <button
+                v-for="d in ['GO_BACKEND', 'REACT_FRONTEND', 'SYSTEM_DESIGN', 'DATABASE_RELATED', 'AI_CODING']"
+                :key="d"
+                @click="store.selectStyleProfile(d, store.selectedStyleLevel)"
+                class="text-left text-xs px-3 py-2 rounded-lg transition-colors"
+                :class="store.selectedStyleDirection === d ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'"
+              >
+                {{ directionLabel(d) }}
+              </button>
+            </div>
+
+            <label class="text-xs font-label text-on-surface-variant block mb-2 mt-4">题型</label>
+            <div class="flex flex-col gap-1.5">
+              <button
+                v-for="l in ['BASIC', 'DEEP_PRINCIPLE', 'PROJECT_PRACTICE']"
+                :key="l"
+                @click="store.selectStyleProfile(store.selectedStyleDirection, l)"
+                class="text-left text-xs px-3 py-2 rounded-lg transition-colors"
+                :class="store.selectedStyleLevel === l ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'"
+              >
+                {{ levelLabel(l) }}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div v-if="store.isStyleLoading" class="flex items-center gap-2 text-primary py-8">
+              <span class="material-symbols-outlined animate-spin text-base">progress_activity</span>
+              <span class="text-sm">加载中...</span>
+            </div>
+
+            <template v-else-if="store.styleProfileDraft">
+              <label class="text-xs font-label text-on-surface-variant block mb-2">出题侧重领域</label>
+              <textarea
+                v-model="store.styleProfileDraft.focusAreas"
+                class="w-full min-h-[80px] bg-surface-container-high text-on-surface border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none resize-y"
+                placeholder="例如：Go runtime 原理、并发模型、GC 调优"
+              ></textarea>
+
+              <label class="text-xs font-label text-on-surface-variant block mb-2 mt-3">场景偏好</label>
+              <textarea
+                v-model="store.styleProfileDraft.scenarioPreference"
+                class="w-full min-h-[80px] bg-surface-container-high text-on-surface border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none resize-y"
+                placeholder="例如：微服务拆分、分布式事务、高可用缓存"
+              ></textarea>
+
+              <label class="text-xs font-label text-on-surface-variant block mb-2 mt-3">关键词风格</label>
+              <textarea
+                v-model="store.styleProfileDraft.keywordStyle"
+                class="w-full min-h-[60px] bg-surface-container-high text-on-surface border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none resize-y"
+                placeholder="例如：偏向底层原理术语，如 GMP 调度模型、三色标记法"
+              ></textarea>
+
+              <div class="flex justify-end mt-4">
+                <button
+                  @click="store.saveStyleProfileDraft()"
+                  :disabled="store.isStyleSaving"
+                  class="bg-primary text-on-primary font-label font-medium rounded-lg px-6 py-2.5 shadow-md hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                >
+                  <span v-if="store.isStyleSaving" class="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  <span v-else class="material-symbols-outlined text-sm">save</span>
+                  {{ store.isStyleSaving ? '保存中...' : '保存风格' }}
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
       <!-- Prompt Manager -->
       <section class="mt-8 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
         <div class="px-6 py-5 bg-surface-container-low flex items-start justify-between gap-4">
@@ -321,6 +404,8 @@ onMounted(() => {
   store.loadModel()
   store.loadVaultConfig()
   store.loadPrompts()
+  store.loadStyleProfiles()
+  store.selectStyleProfile('GO_BACKEND', 'BASIC')
 })
 
 function handleSave() {
@@ -338,5 +423,25 @@ function formatSize(size: number) {
 function formatDate(value: string) {
   if (!value) return '-'
   return new Date(value).toLocaleString()
+}
+
+function directionLabel(d: string): string {
+  const labels: Record<string, string> = {
+    GO_BACKEND: 'Go 后端',
+    REACT_FRONTEND: 'React 前端',
+    SYSTEM_DESIGN: '系统设计',
+    DATABASE_RELATED: '数据库相关',
+    AI_CODING: 'AI Agent',
+  }
+  return labels[d] || d
+}
+
+function levelLabel(l: string): string {
+  const labels: Record<string, string> = {
+    BASIC: '基础八股',
+    DEEP_PRINCIPLE: '深度原理',
+    PROJECT_PRACTICE: '项目实战',
+  }
+  return labels[l] || l
 }
 </script>
