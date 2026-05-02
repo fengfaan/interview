@@ -18,7 +18,10 @@ public class FallbackService {
 
     /**
      * Find a healthy alternative model and switch to it.
-     * Priority: other OpenRouter free models -> ZhiPu glm-4-flash.
+     * Fallback chains:
+     *   OpenRouter -> MiMo -> ZhiPu
+     *   MiMo -> ZhiPu
+     *   ZhiPu -> MiMo -> OpenRouter
      *
      * @return the model name switched to, or null if all models are down
      */
@@ -31,14 +34,38 @@ public class FallbackService {
                 switchModel(AiConfig.PROVIDER_OPENROUTER, candidate);
                 return candidate;
             }
-            // All OpenRouter models OPEN -> fall back to ZhiPu
-            log.warn("All OpenRouter free models OPEN, falling back to ZhiPu {}", AiConfig.DEFAULT_MODEL);
+            // All OpenRouter models OPEN -> try MiMo
+            String mimoDefault = AiConfig.MIMO_DEFAULT_MODEL;
+            if (!circuitBreaker.isOpen(mimoDefault)) {
+                switchModel(AiConfig.PROVIDER_MIMO, mimoDefault);
+                return mimoDefault;
+            }
+            // MiMo also OPEN -> fall back to ZhiPu
+            log.warn("All OpenRouter and MiMo models OPEN, falling back to ZhiPu {}", AiConfig.DEFAULT_MODEL);
+            if (!circuitBreaker.isOpen(AiConfig.DEFAULT_MODEL)) {
+                switchModel(AiConfig.PROVIDER_ZHIPU, AiConfig.DEFAULT_MODEL);
+                return AiConfig.DEFAULT_MODEL;
+            }
+        } else if (AiConfig.PROVIDER_MIMO.equals(currentProvider)) {
+            // MiMo model failed -> try other MiMo models
+            String candidate = findHealthyModel(AiConfig.PROVIDER_MIMO, currentModel);
+            if (candidate != null) {
+                switchModel(AiConfig.PROVIDER_MIMO, candidate);
+                return candidate;
+            }
+            // All MiMo models OPEN -> fall back to ZhiPu
+            log.warn("All MiMo models OPEN, falling back to ZhiPu {}", AiConfig.DEFAULT_MODEL);
             if (!circuitBreaker.isOpen(AiConfig.DEFAULT_MODEL)) {
                 switchModel(AiConfig.PROVIDER_ZHIPU, AiConfig.DEFAULT_MODEL);
                 return AiConfig.DEFAULT_MODEL;
             }
         } else {
-            // ZhiPu model failed -> try OpenRouter free models
+            // ZhiPu model failed -> try MiMo first, then OpenRouter
+            String mimoDefault = AiConfig.MIMO_DEFAULT_MODEL;
+            if (!circuitBreaker.isOpen(mimoDefault)) {
+                switchModel(AiConfig.PROVIDER_MIMO, mimoDefault);
+                return mimoDefault;
+            }
             String candidate = findHealthyOpenRouterModel(null);
             if (candidate != null) {
                 switchModel(AiConfig.PROVIDER_OPENROUTER, candidate);
@@ -52,6 +79,19 @@ public class FallbackService {
 
     private String findHealthyOpenRouterModel(String excludeModel) {
         List<String> models = settingsService.getModelOptions(AiConfig.PROVIDER_OPENROUTER);
+        for (String model : models) {
+            if (model.equals(excludeModel)) {
+                continue;
+            }
+            if (!circuitBreaker.isOpen(model)) {
+                return model;
+            }
+        }
+        return null;
+    }
+
+    private String findHealthyModel(String provider, String excludeModel) {
+        List<String> models = settingsService.getModelOptions(provider);
         for (String model : models) {
             if (model.equals(excludeModel)) {
                 continue;
