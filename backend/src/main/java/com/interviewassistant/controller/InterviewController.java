@@ -70,7 +70,8 @@ public class InterviewController {
         });
 
         executor.execute(() -> batchStreamService.executeBatchStream(
-                emitter, closed, request.getDirection(), request.getLevel(), request.getCount()));
+                emitter, closed, request.getDirection(), request.getLevel(), request.getCount(),
+                request.getExistingQuestions()));
         return emitter;
     }
 
@@ -97,6 +98,11 @@ public class InterviewController {
     @PostMapping(value = "/recommended-answer/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamRecommendedAnswer(@Valid @RequestBody RecommendedAnswerRequest request) {
         return interviewStreamService.streamRecommendedAnswer(request);
+    }
+
+    @PostMapping(value = "/batch-answer/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamBatchAnswer(@Valid @RequestBody RecommendedAnswerRequest request) {
+        return interviewStreamService.streamBatchAnswer(request);
     }
 
     @PostMapping(value = "/deep-dive/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

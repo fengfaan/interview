@@ -138,3 +138,11 @@ export function streamBatchQuestionEvents(
     }
   }, handlers.onError)
 }
+
+export function streamBatchAnswer(
+  request: RecommendedAnswerRequest,
+  onChunk: (text: string) => void,
+  onError?: (error: string) => void,
+): Promise<void> {
+  return streamPost('/interview/batch-answer/stream', request, onChunk, onError)
+}

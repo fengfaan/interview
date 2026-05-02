@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { streamBatchQuestionEvents } from '../api/interviewApi'
+import { streamBatchQuestionEvents, streamBatchAnswer } from '../api/interviewApi'
 import type { BatchQuestionItem } from '../types/interview'
 import { useKnowledgeStore } from './knowledgeStore'
 
@@ -18,6 +18,8 @@ export const useRapidQuestionStore = defineStore('rapidQuestion', () => {
   const currentBatch = ref(0)
   const totalBatches = ref(0)
   const failedBatches = ref<number[]>([])
+  const loadingAnswerIds = ref<Set<string>>(new Set())
+  const answerErrors = ref<Map<string, string>>(new Map())
 
   const COUNT_OPTIONS = [10, 20, 50, 100]
 
@@ -26,18 +28,24 @@ export const useRapidQuestionStore = defineStore('rapidQuestion', () => {
     isLoading.value = true
     expandedIds.value = new Set()
     savedIds.value = new Set()
-    questions.value = []
     generatedCount.value = 0
     progressText.value = '批量出题已开始'
     currentBatch.value = 0
     totalBatches.value = 0
     failedBatches.value = []
+    loadingAnswerIds.value = new Set()
+    answerErrors.value = new Map()
+
+    const existing = questions.value.map(q => q.question)
+    questions.value = []
+
     try {
       await streamBatchQuestionEvents(
         {
           direction: direction.value,
           level: level.value,
           count: count.value,
+          existingQuestions: existing.length > 0 ? existing : undefined,
         },
         {
           onProgress: (payload) => {
@@ -80,12 +88,50 @@ export const useRapidQuestionStore = defineStore('rapidQuestion', () => {
     }
   }
 
+  async function loadAnswer(questionId: string) {
+    const q = questions.value.find(item => item.questionId === questionId)
+    if (!q || q.answer) return
+
+    loadingAnswerIds.value = new Set([...loadingAnswerIds.value, questionId])
+    answerErrors.value = new Map([...answerErrors.value.entries()].filter(([k]) => k !== questionId))
+
+    let fullAnswer = ''
+    try {
+      await streamBatchAnswer(
+        {
+          direction: direction.value,
+          level: level.value,
+          question: q.question,
+          expectedKeywords: q.keywords,
+        },
+        (chunk) => {
+          fullAnswer += chunk
+          const idx = questions.value.findIndex(item => item.questionId === questionId)
+          if (idx >= 0) {
+            questions.value[idx] = { ...questions.value[idx], answer: fullAnswer }
+          }
+        },
+        (errMsg) => {
+          answerErrors.value = new Map([...answerErrors.value, [questionId, errMsg]])
+        },
+      )
+    } catch (e: any) {
+      answerErrors.value = new Map([...answerErrors.value, [questionId, e.message || '答案生成失败']])
+    } finally {
+      loadingAnswerIds.value = new Set([...loadingAnswerIds.value].filter(id => id !== questionId))
+    }
+  }
+
   function toggleExpand(id: string) {
     const s = new Set(expandedIds.value)
     if (s.has(id)) {
       s.delete(id)
     } else {
       s.add(id)
+      const q = questions.value.find(item => item.questionId === id)
+      if (q && !q.answer && !loadingAnswerIds.value.has(id)) {
+        loadAnswer(id)
+      }
     }
     expandedIds.value = s
   }
@@ -94,7 +140,16 @@ export const useRapidQuestionStore = defineStore('rapidQuestion', () => {
     return expandedIds.value.has(id)
   }
 
+  function isLoadingAnswer(id: string) {
+    return loadingAnswerIds.value.has(id)
+  }
+
+  function getAnswerError(id: string) {
+    return answerErrors.value.get(id)
+  }
+
   async function saveOne(item: BatchQuestionItem) {
+    if (!item.answer) return false
     const knowledgeStore = useKnowledgeStore()
     const ok = await knowledgeStore.saveNote({
       title: item.question,
@@ -110,7 +165,7 @@ export const useRapidQuestionStore = defineStore('rapidQuestion', () => {
 
   async function saveAll() {
     for (const q of questions.value) {
-      if (!savedIds.value.has(q.questionId)) {
+      if (!savedIds.value.has(q.questionId) && q.answer) {
         await saveOne(q)
       }
     }
@@ -126,12 +181,16 @@ export const useRapidQuestionStore = defineStore('rapidQuestion', () => {
     currentBatch.value = 0
     totalBatches.value = 0
     failedBatches.value = []
+    loadingAnswerIds.value = new Set()
+    answerErrors.value = new Map()
   }
 
   return {
     direction, level, count, questions, expandedIds,
     isLoading, error, savedIds, generatedCount, progressText,
     currentBatch, totalBatches, failedBatches, COUNT_OPTIONS,
-    generate, toggleExpand, isExpanded, saveOne, saveAll, reset,
+    loadingAnswerIds, answerErrors,
+    generate, toggleExpand, isExpanded, isLoadingAnswer, getAnswerError,
+    loadAnswer, saveOne, saveAll, reset,
   }
 })

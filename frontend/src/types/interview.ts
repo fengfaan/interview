@@ -81,7 +81,7 @@ export const LEVELS: LevelOption[] = [
 export interface BatchQuestionItem {
   questionId: string
   question: string
-  answer: string
+  answer: string | null
   keywords: string[]
 }
 
@@ -89,4 +89,5 @@ export interface BatchQuestionRequest {
   direction: string
   level: string
   count: number
+  existingQuestions?: string[]
 }

@@ -65,6 +65,21 @@ public class InterviewStreamService {
         return emitter;
     }
 
+    public SseEmitter streamBatchAnswer(RecommendedAnswerRequest request) {
+        SseEmitter emitter = SseUtils.createShortEmitter();
+        String prompt = interviewService.buildBatchAnswerPrompt(
+                request.getDirection(), request.getLevel(),
+                request.getQuestion(), request.getExpectedKeywords());
+        executor.execute(() -> aiGateway.streamText(
+                emitter,
+                promptService.load("interview/system.md"),
+                prompt,
+                "答案生成失败",
+                "启动答案生成失败"
+        ));
+        return emitter;
+    }
+
     public SseEmitter streamDeepDive(DeepDiveRequest request) {
         return deepDiveAgent.execute(request.getQuestion(), request.getExpectedKeywords(),
                 request.getContextType(), request.getContextContent(),

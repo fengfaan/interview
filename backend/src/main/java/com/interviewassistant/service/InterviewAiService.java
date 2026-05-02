@@ -107,6 +107,17 @@ public class InterviewAiService {
         ));
     }
 
+    public String buildBatchAnswerPrompt(InterviewDirection direction, InterviewLevel level, String question,
+                                          List<String> expectedKeywords) {
+        return promptService.render("interview/batch-answer.md", Map.ofEntries(
+                Map.entry("direction", InterviewLabels.directionLabel(direction)),
+                Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
+                Map.entry("question", question),
+                Map.entry("keywords", expectedKeywords != null ? expectedKeywords : List.of()),
+                Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
+        ));
+    }
+
     public String buildDeepDivePrompt(String question, List<String> expectedKeywords,
                                        DeepDiveContextType contextType, String contextContent,
                                        List<ChatMessage> messages) {
@@ -402,17 +413,20 @@ public class InterviewAiService {
 
     public List<BatchQuestionItem> generateBatchQuestionChunk(InterviewDirection direction, InterviewLevel level,
                                                               int count, int batchNumber,
-                                                              int startIndex) {
+                                                              int startIndex, List<String> existingQuestions) {
         if (count <= 0) {
             return Collections.emptyList();
         }
 
-        String userMessage = promptService.render("interview/batch-question.md", Map.ofEntries(
+        String existingText = formatExistingQuestions(existingQuestions);
+
+        String userMessage = promptService.render("interview/batch-question-only.md", Map.ofEntries(
                 Map.entry("direction", InterviewLabels.directionLabel(direction)),
                 Map.entry("questionType", InterviewLabels.questionTypeLabel(level)),
                 Map.entry("count", String.valueOf(count)),
                 Map.entry("batchNumber", String.valueOf(batchNumber)),
                 Map.entry("startIndex", String.valueOf(startIndex)),
+                Map.entry("existingQuestions", existingText),
                 Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
         ));
 
@@ -432,6 +446,21 @@ public class InterviewAiService {
 
     public int batchSize() {
         return BATCH_SIZE;
+    }
+
+    private String formatExistingQuestions(List<String> existingQuestions) {
+        if (existingQuestions == null || existingQuestions.isEmpty()) {
+            return "（无已有题目，这是第一批）";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < existingQuestions.size(); i++) {
+            sb.append(i + 1).append(". ").append(existingQuestions.get(i)).append('\n');
+        }
+        String text = sb.toString();
+        if (text.length() > 3000) {
+            return text.substring(0, 3000) + "\n...（共有 " + existingQuestions.size() + " 道已有题目，已截断）";
+        }
+        return text;
     }
 
     private List<BatchQuestionItem> generateBatchWithRetry(String userMessage, int batchNumber) {
@@ -497,10 +526,10 @@ public class InterviewAiService {
             List<BatchQuestionItem> result = new ArrayList<>();
             for (JsonNode item : items) {
                 String question = textValue(item, "q", "question");
-                String answer = textValue(item, "a", "answer", "reference_answer");
-                if (question == null || answer == null) {
+                if (question == null) {
                     continue;
                 }
+                String answer = textValue(item, "a", "answer", "reference_answer");
                 result.add(new BatchQuestionItem(null, question, answer, listValue(item, "k", "keywords")));
             }
             return result;

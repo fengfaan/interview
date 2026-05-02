@@ -35,7 +35,8 @@ public class BatchQuestionStreamService {
      * 调用方应在异步线程池中调用此方法。
      */
     public void executeBatchStream(SseEmitter emitter, AtomicBoolean closed,
-                                    InterviewDirection direction, InterviewLevel level, int total) {
+                                    InterviewDirection direction, InterviewLevel level, int total,
+                                    List<String> existingQuestions) {
         int batchSize = interviewService.batchSize();
         int batches = (total + batchSize - 1) / batchSize;
         if (!sendEvent(emitter, "progress",
@@ -48,6 +49,7 @@ public class BatchQuestionStreamService {
         int consecutiveFailures = 0;
         Exception lastError = null;
         List<Integer> failedBatches = new ArrayList<>();
+        List<String> allQuestions = existingQuestions != null ? new ArrayList<>(existingQuestions) : new ArrayList<>();
 
         for (int batch = 0; batch < batches; batch++) {
             if (closed.get()) {
@@ -65,7 +67,7 @@ public class BatchQuestionStreamService {
                 }
 
                 List<BatchQuestionItem> chunk = interviewService.generateBatchQuestionChunk(
-                        direction, level, batchCount, batchNumber, startIndex);
+                        direction, level, batchCount, batchNumber, startIndex, allQuestions);
 
                 if (chunk.isEmpty()) {
                     consecutiveFailures++;
@@ -85,6 +87,9 @@ public class BatchQuestionStreamService {
 
                 emitted += chunk.size();
                 consecutiveFailures = 0;
+                for (BatchQuestionItem item : chunk) {
+                    allQuestions.add(item.getQuestion());
+                }
                 if (!sendEvent(emitter, "batch", new BatchPayload(batchNumber, chunk, emitted, total))) {
                     closed.set(true);
                     return;

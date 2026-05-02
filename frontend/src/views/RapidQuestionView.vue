@@ -33,7 +33,7 @@
         <div class="text-center mb-8">
           <span class="material-symbols-outlined text-5xl text-primary mb-3 block">quiz</span>
           <h3 class="text-lg font-headline font-bold text-on-surface">选择参数，快速出题</h3>
-          <p class="text-sm text-on-surface-variant mt-1">一次生成多道面试题，点击查看答案</p>
+          <p class="text-sm text-on-surface-variant mt-1">快速生成题目，点击展开即可查看答案</p>
         </div>
 
         <div class="space-y-5">
@@ -149,7 +149,15 @@
                     class="bg-primary-fixed/40 text-on-primary-fixed px-2 py-0.5 rounded text-xs"
                   >{{ kw }}</span>
                 </div>
-                <div class="markdown-body text-on-surface text-sm" v-html="renderAnswer(q.answer)"></div>
+                <div v-if="store.isLoadingAnswer(q.questionId)" class="flex items-center gap-2 text-sm text-on-surface-variant py-2">
+                  <span class="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                  正在生成答案...
+                </div>
+                <div v-else-if="store.getAnswerError(q.questionId)" class="text-sm text-error py-2">
+                  {{ store.getAnswerError(q.questionId) }}
+                  <button @click="store.loadAnswer(q.questionId)" class="ml-2 underline text-xs">重试</button>
+                </div>
+                <div v-else-if="q.answer" class="markdown-body text-on-surface text-sm" v-html="renderAnswer(q.answer)"></div>
               </div>
             </div>
           </transition>
