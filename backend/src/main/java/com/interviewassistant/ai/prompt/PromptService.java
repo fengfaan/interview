@@ -15,11 +15,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.Map.entry;
+
 @Service
 public class PromptService {
 
     private final Path promptDirectory;
     private final Map<String, CachedPrompt> cache = new ConcurrentHashMap<>();
+
+    private static final Map<String, String> PROMPT_DESCRIPTIONS = Map.ofEntries(
+            entry("interview/system.md", "面试场景 AI 系统人设"),
+            entry("interview/question.md", "生成单道面试题"),
+            entry("interview/batch-question.md", "批量生成题目+答案+关键词"),
+            entry("interview/batch-question-only.md", "批量生成题目+关键词（不含答案，出题更快）"),
+            entry("interview/batch-answer.md", "为指定题目流式生成参考答案"),
+            entry("interview/feedback-json.md", "分析面试回答，返回 JSON 评分"),
+            entry("interview/feedback-stream.md", "流式分析面试回答并给出点评"),
+            entry("interview/recommended-answer.md", "生成适合背诵的推荐答案"),
+            entry("interview/deep-dive.md", "多轮追问深入讨论知识点"),
+            entry("interview/deep-dive-agent-system.md", "带知识库搜索的追问 Agent 系统提示词"),
+            entry("resume/system.md", "简历优化 AI 系统人设"),
+            entry("resume/analyze.md", "分析简历与 JD 的匹配度"),
+            entry("resume/rewrite.md", "用 STAR 方法重写简历经历"),
+            entry("settings/prompt-improver.md", "AI 优化提示词的元提示词")
+    );
 
     private record CachedPrompt(String content, long lastModifiedMillis) {
     }
@@ -116,10 +135,12 @@ public class PromptService {
             String[] parts = relativePath.split("/");
             String group = parts.length > 1 ? parts[0] : "root";
             String name = path.getFileName().toString();
+            String description = PROMPT_DESCRIPTIONS.getOrDefault(relativePath, "");
             return new PromptFileResponse(
                     relativePath,
                     group,
                     name,
+                    description,
                     Files.size(path),
                     Files.getLastModifiedTime(path).toInstant().toString()
             );

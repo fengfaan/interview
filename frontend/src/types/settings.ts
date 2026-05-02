@@ -24,6 +24,7 @@ export interface PromptFile {
   path: string
   group: string
   name: string
+  description: string
   size: number
   lastModified: string
 }

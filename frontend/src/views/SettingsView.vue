@@ -300,7 +300,8 @@
               >
                 <div class="text-xs uppercase tracking-wide opacity-70">{{ file.group }}</div>
                 <div class="font-label font-semibold text-sm mt-0.5">{{ file.name }}</div>
-                <div class="text-xs opacity-70 mt-1">{{ formatSize(file.size) }}</div>
+                <div v-if="file.description" class="text-xs opacity-60 mt-1">{{ file.description }}</div>
+                <div class="text-xs opacity-50 mt-1">{{ formatSize(file.size) }}</div>
               </button>
             </div>
           </aside>
