@@ -56,6 +56,13 @@ public class SettingsService {
             "openai/gpt-oss-120b:free",
             "openai/gpt-oss-20b:free"
     );
+    private static final List<String> MIMO_MODEL_OPTIONS = List.of(
+            "mimo-v2-flash",
+            "mimo-v2.5",
+            "mimo-v2-omni",
+            "mimo-v2.5-pro",
+            "mimo-v2-pro"
+    );
     private final ReentrantLock fileLock = new ReentrantLock();
     private final ConcurrentHashMap<String, String> settingsCache = new ConcurrentHashMap<>();
     private volatile boolean settingsLoaded = false;
@@ -134,9 +141,10 @@ public class SettingsService {
     }
 
     public List<String> getModelOptions(String provider) {
-        return AiConfig.PROVIDER_OPENROUTER.equals(AiConfig.normalizeProvider(provider))
-                ? OPENROUTER_MODEL_OPTIONS
-                : ZHIPU_MODEL_OPTIONS;
+        String p = AiConfig.normalizeProvider(provider);
+        if (AiConfig.PROVIDER_OPENROUTER.equals(p)) return OPENROUTER_MODEL_OPTIONS;
+        if (AiConfig.PROVIDER_MIMO.equals(p)) return MIMO_MODEL_OPTIONS;
+        return ZHIPU_MODEL_OPTIONS;
     }
 
     public String maskKey(String key) {
@@ -300,6 +308,7 @@ public class SettingsService {
     private String envKeyForProvider(String provider) {
         return switch (provider) {
             case AiConfig.PROVIDER_OPENROUTER -> "OPENROUTER_API_KEY";
+            case AiConfig.PROVIDER_MIMO -> "app.mimo.api-key";
             case AiConfig.PROVIDER_ZHIPU -> "spring.ai.openai.api-key";
             default -> "spring.ai.openai.api-key";
         };
