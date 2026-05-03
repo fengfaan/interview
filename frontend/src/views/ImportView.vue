@@ -98,8 +98,8 @@
       </div>
     </div>
 
-    <!-- Parsed Results -->
-    <div v-if="store.parsedQuestions.length" class="flex-1 px-8 pb-8">
+    <!-- Parsed Results (hidden when consolidated result is showing) -->
+    <div v-if="store.parsedQuestions.length && !store.consolidatedResult" class="flex-1 px-8 pb-8">
       <div class="max-w-4xl mx-auto">
         <div class="flex items-center justify-between mb-4">
           <span class="text-sm text-on-surface-variant">共解析 {{ store.parsedQuestions.length }} 题，已选 {{ store.selectedIds.size }} 题</span>
@@ -166,8 +166,85 @@
             <span v-else class="material-symbols-outlined text-base">bookmark_add</span>
             {{ store.isSaving ? '导入中...' : `导入 ${store.selectedIds.size} 题到知识库` }}
           </button>
+
+          <!-- AI 清洗并合并保存 -->
+          <button
+            v-if="store.parsedQuestions.length > 0 && !store.isConsolidating && !store.consolidatedResult"
+            @click="store.doConsolidate()"
+            :disabled="store.selectedIds.size === 0 || store.isSaving"
+            class="bg-purple-600 text-white font-label font-medium rounded-xl py-3 px-8 shadow-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-base">auto_fix_high</span>
+            AI 清洗并合并保存 ({{ store.selectedIds.size }} 题)
+          </button>
+
           <span v-if="store.saveResults.size" class="text-sm text-on-surface-variant">
             {{ store.savedCount }} / {{ store.saveResults.size }} 题保存成功
+          </span>
+        </div>
+
+        <!-- 清洗进度 -->
+        <div v-if="store.isConsolidating" class="mt-4 flex items-center gap-2 text-purple-600">
+          <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span>{{ store.consolidateProgress || '正在 AI 清洗整理...' }}</span>
+        </div>
+        <div v-if="store.consolidateError" class="mt-4 text-red-600 text-sm">
+          {{ store.consolidateError }}
+        </div>
+      </div>
+    </div>
+
+    <!-- 清洗结果预览 -->
+    <div v-if="store.consolidatedResult" class="flex-1 px-8 pb-8">
+      <div class="max-w-4xl mx-auto mt-4 space-y-4">
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-purple-700">
+              清洗完成：原始 {{ store.selectedIds.size }} 题 → 整理后 {{ store.consolidatedResult.totalCount }} 题
+              <span v-if="store.consolidatedResult.dedupCount > 0">
+                （去重 {{ store.consolidatedResult.dedupCount }} 题）
+              </span>
+              ，分为 {{ store.consolidatedResult.categories.length }} 个分类
+            </span>
+            <div class="flex gap-2">
+              <button
+                @click="store.consolidatedResult = null"
+                class="text-sm text-gray-500 hover:text-gray-700"
+              >
+                取消
+              </button>
+              <button
+                @click="store.doConsolidatedSave()"
+                :disabled="store.isSaving"
+                class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+              >
+                确认保存
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 按分类展示 -->
+        <div v-for="(category, ci) in store.consolidatedResult.categories" :key="ci" class="space-y-2">
+          <h3 class="text-md font-semibold text-gray-700 border-b pb-1">{{ category.name }}</h3>
+          <div v-for="(item, ii) in category.items" :key="ii"
+            class="bg-white border rounded-lg p-3 text-sm">
+            <div class="font-medium">{{ item.question }}</div>
+            <div v-if="item.keywords?.length" class="mt-1 flex gap-1 flex-wrap">
+              <span v-for="kw in item.keywords" :key="kw"
+                class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{{ kw }}</span>
+            </div>
+            <div class="mt-2 text-gray-600 line-clamp-3">{{ item.answer }}</div>
+          </div>
+        </div>
+
+        <!-- 保存结果 -->
+        <div v-if="store.consolidatedSaved && store.consolidatedSaveResult" class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <span class="text-green-700 text-sm">
+            已保存 {{ store.consolidatedSaveResult.questionCount }} 道题到知识库
           </span>
         </div>
       </div>

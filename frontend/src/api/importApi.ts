@@ -1,6 +1,10 @@
 import type {
   CaptureRequest,
   CaptureResponse,
+  ConsolidateRequest,
+  ConsolidateResult,
+  ConsolidatedSaveRequest,
+  ConsolidatedSaveResult,
   ImportSaveRequest,
   ImportSaveResult,
 } from '../types/import'
@@ -57,4 +61,38 @@ export async function saveImported(request: ImportSaveRequest): Promise<ImportSa
   const json = await res.json()
   if (!json.success) throw new Error(json.message || '导入失败')
   return json.data
+}
+
+export async function consolidateStream(
+  request: ConsolidateRequest,
+  onResult: (result: ConsolidateResult) => void,
+  onProgress: (msg: string) => void,
+  onError: (msg: string) => void,
+): Promise<void> {
+  return streamPostEvents(
+    '/import/consolidate/stream',
+    request,
+    (event) => {
+      if (event.type === 'progress') {
+        onProgress(event.data)
+      } else if (event.type === 'result') {
+        const parsed = JSON.parse(event.data) as ConsolidateResult
+        onResult(parsed)
+      }
+    },
+    onError,
+  )
+}
+
+export async function saveConsolidated(
+  request: ConsolidatedSaveRequest,
+): Promise<ConsolidatedSaveResult> {
+  const res = await fetch(`${API_BASE}/consolidate/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || '合并保存失败')
+  return json.data as ConsolidatedSaveResult
 }

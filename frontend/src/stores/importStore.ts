@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { capturePage, streamParseQuestions, saveImported } from '../api/importApi'
-import type { ParsedQuestion, ImportSaveResult } from '../types/import'
+import { capturePage, streamParseQuestions, saveImported, consolidateStream, saveConsolidated } from '../api/importApi'
+import type { ParsedQuestion, ImportSaveResult, ConsolidateResult, ConsolidatedSaveResult } from '../types/import'
 
 export const useImportStore = defineStore('import', () => {
   const inputMode = ref<'url' | 'paste'>('url')
@@ -26,6 +26,13 @@ export const useImportStore = defineStore('import', () => {
   const saveError = ref('')
   const saveResults = ref<Map<number, ImportSaveResult>>(new Map())
   const savedCount = computed(() => [...saveResults.value.values()].filter(r => r.success).length)
+
+  const isConsolidating = ref(false)
+  const consolidateProgress = ref('')
+  const consolidatedResult = ref<ConsolidateResult | null>(null)
+  const consolidateError = ref('')
+  const consolidatedSaved = ref(false)
+  const consolidatedSaveResult = ref<ConsolidatedSaveResult | null>(null)
 
   const contentToParse = computed(() =>
     inputMode.value === 'url' ? capturedContent.value : pastedContent.value
@@ -125,6 +132,66 @@ export const useImportStore = defineStore('import', () => {
     }
   }
 
+  async function doConsolidate() {
+    const items = Array.from(selectedIds.value)
+      .sort((a, b) => a - b)
+      .map(i => parsedQuestions.value[i])
+      .filter(Boolean)
+
+    if (items.length === 0) return
+
+    isConsolidating.value = true
+    consolidateError.value = ''
+    consolidateProgress.value = ''
+    consolidatedResult.value = null
+    consolidatedSaved.value = false
+    consolidatedSaveResult.value = null
+
+    try {
+      await consolidateStream(
+        {
+          items,
+          sourceUrl: url.value,
+          title: capturedTitle.value || '面试题集'
+        },
+        (result) => {
+          consolidatedResult.value = result
+        },
+        (msg) => {
+          consolidateProgress.value = msg
+        },
+        (msg) => {
+          consolidateError.value = msg
+        }
+      )
+    } catch (e: any) {
+      consolidateError.value = e.message || '清洗失败'
+    } finally {
+      isConsolidating.value = false
+    }
+  }
+
+  async function doConsolidatedSave() {
+    if (!consolidatedResult.value) return
+
+    isSaving.value = true
+    saveError.value = ''
+
+    try {
+      const result = await saveConsolidated({
+        categories: consolidatedResult.value.categories,
+        sourceUrl: url.value,
+        title: capturedTitle.value || '面试题集'
+      })
+      consolidatedSaveResult.value = result
+      consolidatedSaved.value = true
+    } catch (e: any) {
+      saveError.value = e.message || '合并保存失败'
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   async function doSave() {
     const selectedIndices = [...selectedIds.value].sort((a, b) => a - b)
     const items = selectedIndices.map(i => parsedQuestions.value[i])
@@ -163,6 +230,12 @@ export const useImportStore = defineStore('import', () => {
     isSaving.value = false
     saveResults.value = new Map()
     saveError.value = ''
+    isConsolidating.value = false
+    consolidateProgress.value = ''
+    consolidatedResult.value = null
+    consolidateError.value = ''
+    consolidatedSaved.value = false
+    consolidatedSaveResult.value = null
   }
 
   return {
@@ -171,7 +244,11 @@ export const useImportStore = defineStore('import', () => {
     parsedQuestions, isParsing, parseError, parseProgress,
     selectedIds, editingIndex, editDraft,
     isSaving, saveError, saveResults, savedCount, contentToParse,
+    isConsolidating, consolidateProgress, consolidatedResult, consolidateError,
+    consolidatedSaved, consolidatedSaveResult,
     doCapture, doParse, toggleSelect, selectAll, deselectAll,
-    removeQuestion, startEdit, cancelEdit, saveEdit, doSave, reset,
+    removeQuestion, startEdit, cancelEdit, saveEdit, doSave,
+    doConsolidate, doConsolidatedSave,
+    reset,
   }
 })

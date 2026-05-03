@@ -25,3 +25,33 @@ export interface ImportSaveResult {
   success: boolean
   error: string | null
 }
+
+export interface ConsolidatedCategory {
+  name: string
+  items: ParsedQuestion[]
+}
+
+export interface ConsolidateResult {
+  categories: ConsolidatedCategory[]
+  dedupCount: number
+  totalCount: number
+}
+
+export interface ConsolidateRequest {
+  items: ParsedQuestion[]
+  sourceUrl: string
+  title: string
+}
+
+export interface ConsolidatedSaveRequest {
+  categories: ConsolidatedCategory[]
+  sourceUrl: string
+  title: string
+}
+
+export interface ConsolidatedSaveResult {
+  filePath: string
+  questionCount: number
+  success: boolean
+  error: string | null
+}
