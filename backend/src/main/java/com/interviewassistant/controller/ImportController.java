@@ -10,7 +10,12 @@ import com.interviewassistant.dto.import_.ImportSaveResult;
 import com.interviewassistant.dto.import_.ParseRequest;
 import com.interviewassistant.dto.import_.ParseResponse;
 import com.interviewassistant.dto.knowledge.CreateNoteRequest;
+import com.interviewassistant.dto.import_.ConsolidateRequest;
+import com.interviewassistant.dto.import_.ConsolidateResult;
+import com.interviewassistant.dto.import_.ConsolidatedSaveRequest;
+import com.interviewassistant.dto.import_.ConsolidatedSaveResult;
 import com.interviewassistant.service.BrowserCaptureService;
+import com.interviewassistant.service.ConsolidateService;
 import com.interviewassistant.service.InterviewAiService;
 import com.interviewassistant.service.ObsidianService;
 import jakarta.validation.Valid;
@@ -35,15 +40,18 @@ public class ImportController {
     private final BrowserCaptureService captureService;
     private final InterviewAiService interviewService;
     private final ObsidianService obsidianService;
+    private final ConsolidateService consolidateService;
     private final Executor executor;
 
     public ImportController(BrowserCaptureService captureService,
                             InterviewAiService interviewService,
                             ObsidianService obsidianService,
+                            ConsolidateService consolidateService,
                             @Qualifier("sseTaskExecutor") Executor executor) {
         this.captureService = captureService;
         this.interviewService = interviewService;
         this.obsidianService = obsidianService;
+        this.consolidateService = consolidateService;
         this.executor = executor;
     }
 
@@ -99,6 +107,42 @@ public class ImportController {
         });
 
         return emitter;
+    }
+
+    @PostMapping(value = "/consolidate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter consolidateStream(@Valid @RequestBody ConsolidateRequest request) {
+        SseEmitter emitter = SseUtils.createBatchEmitter();
+        AtomicBoolean closed = new AtomicBoolean(false);
+
+        emitter.onTimeout(() -> { closed.set(true); emitter.complete(); });
+        emitter.onCompletion(() -> closed.set(true));
+        emitter.onError(e -> closed.set(true));
+
+        executor.execute(() -> {
+            try {
+                SseUtils.sendProgress(emitter, "正在 AI 清洗整理...");
+                ConsolidateResult result = consolidateService.consolidate(request.getItems());
+
+                if (closed.get()) return;
+
+                String json = OBJECT_MAPPER.writeValueAsString(result);
+                emitter.send(SseEmitter.event().name("result").data(json, MediaType.APPLICATION_JSON));
+                SseUtils.sendDone(emitter);
+            } catch (Exception e) {
+                if (!closed.get()) {
+                    SseUtils.sendError(emitter, "CONSOLIDATE_ERROR", "清洗失败: " + e.getMessage());
+                }
+            }
+        });
+
+        return emitter;
+    }
+
+    @PostMapping("/consolidate/save")
+    public ApiResponse<ConsolidatedSaveResult> consolidateSave(
+            @Valid @RequestBody ConsolidatedSaveRequest request) {
+        ConsolidatedSaveResult result = obsidianService.createConsolidatedNote(request);
+        return ApiResponse.ok(result);
     }
 
     @PostMapping("/save")

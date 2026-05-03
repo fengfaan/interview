@@ -38,6 +38,7 @@ public class PromptService {
             entry("resume/analyze.md", "分析简历与 JD 的匹配度"),
             entry("resume/rewrite.md", "用 STAR 方法重写简历经历"),
             entry("import/import-parse.md", "从网页文本中 AI 解析面试题"),
+            entry("import/consolidate.md", "AI 清洗整理面试题（去重、合并、分类）"),
             entry("settings/prompt-improver.md", "AI 优化提示词的元提示词")
     );
 

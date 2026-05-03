@@ -1,5 +1,8 @@
 package com.interviewassistant.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interviewassistant.dto.import_.ConsolidatedSaveRequest;
+import com.interviewassistant.dto.import_.ConsolidatedSaveResult;
 import com.interviewassistant.dto.knowledge.CreateNoteRequest;
 import com.interviewassistant.dto.knowledge.NoteDetail;
 import com.interviewassistant.dto.knowledge.NoteItem;
@@ -237,6 +240,77 @@ public class ObsidianService {
         }
 
         return parseNoteItem(filePath, knowledgeDir);
+    }
+
+    public ConsolidatedSaveResult createConsolidatedNote(ConsolidatedSaveRequest request) {
+        try {
+            String vaultPath = settingsService.getVaultPath();
+            String subDir = KNOWLEDGE_DIR + "/" + sanitizeFileName("网页抓题");
+            Path dirPath = Paths.get(vaultPath, subDir);
+            Files.createDirectories(dirPath);
+
+            String title = request.getTitle() != null ? request.getTitle() : "面试题集";
+            String timestamp = LocalDateTime.now().format(FILE_DATE_FMT);
+            String fileName = sanitizeFileName(title) + "-" + timestamp + ".md";
+            Path filePath = dirPath.resolve(fileName);
+
+            // Collect all tags
+            Set<String> allTags = new LinkedHashSet<>();
+            int questionCount = 0;
+            for (var category : request.getCategories()) {
+                for (var item : category.getItems()) {
+                    if (item.getKeywords() != null) {
+                        allTags.addAll(item.getKeywords());
+                    }
+                    questionCount++;
+                }
+            }
+
+            // Build frontmatter
+            ObjectMapper mapper = new ObjectMapper();
+            StringBuilder frontmatter = new StringBuilder();
+            frontmatter.append("---\n");
+            frontmatter.append("title: \"").append(escapeYaml(title)).append("\"\n");
+            frontmatter.append("direction: \"网页抓题\"\n");
+            frontmatter.append("tags: ").append(mapper.writeValueAsString(allTags.stream().limit(20).toList())).append("\n");
+            frontmatter.append("created: \"").append(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append("\"\n");
+            frontmatter.append("source: \"web-import-consolidated\"\n");
+            if (request.getSourceUrl() != null) {
+                frontmatter.append("url: \"").append(escapeYaml(request.getSourceUrl())).append("\"\n");
+            }
+            frontmatter.append("questionCount: ").append(questionCount).append("\n");
+            frontmatter.append("---\n\n");
+
+            // Build body
+            StringBuilder body = new StringBuilder();
+            body.append("# ").append(title).append("\n\n");
+
+            for (var category : request.getCategories()) {
+                body.append("## ").append(category.getName()).append("\n\n");
+                for (var item : category.getItems()) {
+                    body.append("### ").append(item.getQuestion()).append("\n");
+                    if (item.getKeywords() != null && !item.getKeywords().isEmpty()) {
+                        body.append("**关键词**: ").append(String.join(", ", item.getKeywords())).append("\n\n");
+                    }
+                    body.append(item.getAnswer() != null ? item.getAnswer() : "暂无参考答案").append("\n\n");
+                }
+            }
+
+            String content = frontmatter.toString() + body.toString();
+            Files.writeString(filePath, content, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE_NEW);
+
+            return new ConsolidatedSaveResult(
+                    filePath.toString(), questionCount);
+        } catch (Exception e) {
+            return new ConsolidatedSaveResult(
+                    "合并保存失败: " + e.getMessage());
+        }
+    }
+
+    private String escapeYaml(String value) {
+        if (value == null) return "";
+        return value.replace("\"", "\\\"");
     }
 
     public List<NoteItem> searchNotes(String keyword) {
