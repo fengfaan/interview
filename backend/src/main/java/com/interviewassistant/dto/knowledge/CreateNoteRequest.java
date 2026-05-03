@@ -20,4 +20,5 @@ public class CreateNoteRequest {
     private String questionId;
     private String source;
     private Boolean force;
+    private String url;
 }

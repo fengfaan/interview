@@ -347,6 +347,9 @@ public class ObsidianService {
         if (request.getQuestionId() != null && !request.getQuestionId().isBlank()) {
             sb.append("questionId: ").append(yamlDoubleQuote(request.getQuestionId())).append("\n");
         }
+        if (request.getUrl() != null && !request.getUrl().isBlank()) {
+            sb.append("url: ").append(yamlDoubleQuote(request.getUrl())).append("\n");
+        }
         sb.append("---");
         return sb.toString();
     }
