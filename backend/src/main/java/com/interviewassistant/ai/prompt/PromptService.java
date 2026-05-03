@@ -37,6 +37,7 @@ public class PromptService {
             entry("resume/system.md", "简历优化 AI 系统人设"),
             entry("resume/analyze.md", "分析简历与 JD 的匹配度"),
             entry("resume/rewrite.md", "用 STAR 方法重写简历经历"),
+            entry("import/import-parse.md", "从网页文本中 AI 解析面试题"),
             entry("settings/prompt-improver.md", "AI 优化提示词的元提示词")
     );
 
