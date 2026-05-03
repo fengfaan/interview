@@ -41,38 +41,17 @@ public class ConsolidateService {
 
     private String serializeQuestions(List<ParseResponse.ParsedQuestion> items) {
         try {
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
-            for (int i = 0; i < items.size(); i++) {
-                if (i > 0) sb.append(",");
-                ParseResponse.ParsedQuestion item = items.get(i);
-                sb.append("{\"q\":\"")
-                  .append(escapeJson(item.getQuestion())).append("\"")
-                  .append(",\"a\":\"")
-                  .append(escapeJson(item.getAnswer() != null ? item.getAnswer() : "")).append("\"")
-                  .append(",\"k\":[");
-                if (item.getKeywords() != null) {
-                    for (int j = 0; j < item.getKeywords().size(); j++) {
-                        if (j > 0) sb.append(",");
-                        sb.append("\"").append(escapeJson(item.getKeywords().get(j))).append("\"");
-                    }
-                }
-                sb.append("]}");
-            }
-            sb.append("]");
-            return sb.toString();
+            List<Map<String, Object>> serialized = items.stream().map(item -> {
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("q", item.getQuestion());
+                map.put("a", item.getAnswer() != null ? item.getAnswer() : "");
+                map.put("k", item.getKeywords() != null ? item.getKeywords() : List.of());
+                return map;
+            }).toList();
+            return objectMapper.writeValueAsString(serialized);
         } catch (Exception e) {
             throw new RuntimeException("序列化题目失败", e);
         }
-    }
-
-    private String escapeJson(String value) {
-        if (value == null) return "";
-        return value.replace("\\", "\\\\")
-                     .replace("\"", "\\\"")
-                     .replace("\n", "\\n")
-                     .replace("\r", "\\r")
-                     .replace("\t", "\\t");
     }
 
     ConsolidateResult parseConsolidateResponse(String response, int originalCount) {

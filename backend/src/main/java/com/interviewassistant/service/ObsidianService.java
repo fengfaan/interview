@@ -270,13 +270,13 @@ public class ObsidianService {
             ObjectMapper mapper = new ObjectMapper();
             StringBuilder frontmatter = new StringBuilder();
             frontmatter.append("---\n");
-            frontmatter.append("title: \"").append(escapeYaml(title)).append("\"\n");
+            frontmatter.append("title: ").append(yamlDoubleQuote(title)).append("\n");
             frontmatter.append("direction: \"网页抓题\"\n");
             frontmatter.append("tags: ").append(mapper.writeValueAsString(allTags.stream().limit(20).toList())).append("\n");
             frontmatter.append("created: \"").append(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append("\"\n");
             frontmatter.append("source: \"web-import-consolidated\"\n");
             if (request.getSourceUrl() != null) {
-                frontmatter.append("url: \"").append(escapeYaml(request.getSourceUrl())).append("\"\n");
+                frontmatter.append("url: ").append(yamlDoubleQuote(request.getSourceUrl())).append("\n");
             }
             frontmatter.append("questionCount: ").append(questionCount).append("\n");
             frontmatter.append("---\n\n");
@@ -308,10 +308,6 @@ public class ObsidianService {
         }
     }
 
-    private String escapeYaml(String value) {
-        if (value == null) return "";
-        return value.replace("\"", "\\\"");
-    }
 
     public List<NoteItem> searchNotes(String keyword) {
         if (keyword == null || keyword.isBlank()) {
