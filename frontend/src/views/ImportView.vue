@@ -233,10 +233,7 @@
           <div v-for="(item, ii) in category.items" :key="ii"
             class="bg-white border rounded-lg p-3 text-sm">
             <div class="font-medium">{{ item.question }}</div>
-            <div v-if="item.keywords?.length" class="mt-1 flex gap-1 flex-wrap">
-              <span v-for="kw in item.keywords" :key="kw"
-                class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{{ kw }}</span>
-            </div>
+            <div v-if="item.answer" class="mt-2 text-gray-600 whitespace-pre-line">{{ item.answer }}</div>
           </div>
         </div>
 

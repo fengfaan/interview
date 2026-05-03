@@ -1,6 +1,6 @@
 package com.interviewassistant.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.interviewassistant.dto.import_.ConsolidatedSaveRequest;
 import com.interviewassistant.dto.import_.ConsolidatedSaveResult;
 import com.interviewassistant.dto.knowledge.CreateNoteRequest;
@@ -254,25 +254,16 @@ public class ObsidianService {
             String fileName = sanitizeFileName(title) + "-" + timestamp + ".md";
             Path filePath = dirPath.resolve(fileName);
 
-            // Collect all tags
-            Set<String> allTags = new LinkedHashSet<>();
             int questionCount = 0;
             for (var category : request.getCategories()) {
-                for (var item : category.getItems()) {
-                    if (item.getKeywords() != null) {
-                        allTags.addAll(item.getKeywords());
-                    }
-                    questionCount++;
-                }
+                questionCount += category.getItems().size();
             }
 
             // Build frontmatter
-            ObjectMapper mapper = new ObjectMapper();
             StringBuilder frontmatter = new StringBuilder();
             frontmatter.append("---\n");
             frontmatter.append("title: ").append(yamlDoubleQuote(title)).append("\n");
             frontmatter.append("direction: \"网页抓题\"\n");
-            frontmatter.append("tags: ").append(mapper.writeValueAsString(allTags.stream().limit(20).toList())).append("\n");
             frontmatter.append("created: \"").append(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append("\"\n");
             frontmatter.append("source: \"web-import-consolidated\"\n");
             if (request.getSourceUrl() != null) {
@@ -288,11 +279,10 @@ public class ObsidianService {
             for (var category : request.getCategories()) {
                 body.append("## ").append(category.getName()).append("\n\n");
                 for (var item : category.getItems()) {
-                    body.append("### ").append(item.getQuestion()).append("\n");
-                    if (item.getKeywords() != null && !item.getKeywords().isEmpty()) {
-                        body.append("**关键词**: ").append(String.join(", ", item.getKeywords())).append("\n\n");
-                    } else {
-                        body.append("\n");
+                    body.append("### ").append(item.getQuestion()).append("\n\n");
+                    String answer = item.getAnswer();
+                    if (answer != null && !answer.isBlank()) {
+                        body.append(answer).append("\n\n");
                     }
                 }
             }

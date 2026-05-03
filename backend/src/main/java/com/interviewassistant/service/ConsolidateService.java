@@ -44,7 +44,7 @@ public class ConsolidateService {
             List<Map<String, Object>> serialized = items.stream().map(item -> {
                 Map<String, Object> map = new LinkedHashMap<>();
                 map.put("q", item.getQuestion());
-                map.put("k", item.getKeywords() != null ? item.getKeywords() : List.of());
+                map.put("a", item.getAnswer() != null ? item.getAnswer() : "");
                 return map;
             }).toList();
             return objectMapper.writeValueAsString(serialized);
@@ -73,7 +73,8 @@ public class ConsolidateService {
                         for (JsonNode itemNode : itemsNode) {
                             ParseResponse.ParsedQuestion pq = new ParseResponse.ParsedQuestion();
                             pq.setQuestion(textValue(itemNode, "q", "question"));
-                            pq.setKeywords(listValue(itemNode, "k", "keywords"));
+                            pq.setAnswer(textValue(itemNode, "a", "answer"));
+                            pq.setKeywords(List.of());
                             catItems.add(pq);
                         }
                     }
@@ -111,17 +112,4 @@ public class ConsolidateService {
         return "";
     }
 
-    private List<String> listValue(JsonNode node, String... fieldNames) {
-        for (String name : fieldNames) {
-            JsonNode field = node.get(name);
-            if (field != null && field.isArray()) {
-                List<String> result = new ArrayList<>();
-                for (JsonNode item : field) {
-                    result.add(item.asText());
-                }
-                return result;
-            }
-        }
-        return new ArrayList<>();
-    }
 }
