@@ -6,6 +6,7 @@ import com.interviewassistant.ai.style.StyleService;
 import com.interviewassistant.ai.util.AiErrorUtils;
 import com.interviewassistant.ai.util.JsonOutputUtils;
 import com.interviewassistant.dto.interview.*;
+import com.interviewassistant.dto.import_.ParseResponse;
 import com.interviewassistant.ai.prompt.InterviewLabels;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -116,6 +117,46 @@ public class InterviewAiService {
                 Map.entry("keywords", expectedKeywords != null ? expectedKeywords : List.of()),
                 Map.entry("styleInstruction", styleService.buildStyleInstruction(direction, level))
         ));
+    }
+
+    public List<ParseResponse.ParsedQuestion> parseWebQuestions(String direction, String level, String content) {
+        String directionLabel = direction != null ? direction : "综合";
+        String levelLabel = level != null ? InterviewLabels.questionTypeLabel(
+                InterviewLevel.valueOf(level)) : "基础";
+
+        String userMessage = promptService.render("import/import-parse.md", Map.ofEntries(
+                Map.entry("direction", directionLabel),
+                Map.entry("questionType", levelLabel),
+                Map.entry("content", content)
+        ));
+
+        String response = aiGateway.generateText(
+                promptService.load("interview/system.md"), userMessage);
+
+        return parseImportResponse(response);
+    }
+
+    private List<ParseResponse.ParsedQuestion> parseImportResponse(String response) {
+        try {
+            String json = com.interviewassistant.ai.util.JsonOutputUtils.extractJson(response);
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.reader()
+                    .with(com.fasterxml.jackson.core.json.JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature())
+                    .readTree(json);
+            com.fasterxml.jackson.databind.JsonNode items = root.path("items");
+            if (!items.isArray()) {
+                return java.util.Collections.emptyList();
+            }
+            java.util.List<ParseResponse.ParsedQuestion> result = new java.util.ArrayList<>();
+            for (com.fasterxml.jackson.databind.JsonNode item : items) {
+                String question = textValue(item, "q", "question");
+                if (question == null) continue;
+                String answer = textValue(item, "a", "answer");
+                result.add(new ParseResponse.ParsedQuestion(question, answer, listValue(item, "k", "keywords")));
+            }
+            return result;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("网页面试题解析失败: " + e.getMessage(), e);
+        }
     }
 
     public String buildDeepDivePrompt(String question, List<String> expectedKeywords,
