@@ -184,8 +184,7 @@ public class InterviewAiService {
             for (com.fasterxml.jackson.databind.JsonNode item : items) {
                 String question = textValue(item, "q", "question");
                 if (question == null) continue;
-                String answer = textValue(item, "a", "answer");
-                result.add(new ParseResponse.ParsedQuestion(question, answer, listValue(item, "k", "keywords")));
+                result.add(new ParseResponse.ParsedQuestion(question, null, listValue(item, "k", "keywords")));
             }
             return result;
         } catch (Exception e) {
