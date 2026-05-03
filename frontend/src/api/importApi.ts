@@ -26,7 +26,7 @@ export async function streamParseQuestions(
   onError?: (error: string) => void,
 ): Promise<void> {
   await streamPostEvents(
-    API_BASE + '/parse/stream',
+    '/import/parse/stream',
     { content },
     (event) => {
       if (event.type === 'progress') {
