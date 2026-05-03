@@ -75,7 +75,7 @@ public class BrowserCaptureService {
             if (response.statusCode() != 200) {
                 throw new RuntimeException("GitHub raw fetch failed: HTTP " + response.statusCode());
             }
-            String content = truncate(response.body().trim());
+            String content = denoise(truncate(response.body().trim()));
             String title = originalUrl.substring(originalUrl.lastIndexOf('/') + 1);
             return new CaptureResponse(title, content, originalUrl, Instant.now().toString());
         } catch (RuntimeException e) {
@@ -100,7 +100,7 @@ public class BrowserCaptureService {
             String bodyText = page.innerText("body");
             best = bodyText != null ? bodyText.trim() : "";
         }
-        return truncate(best);
+        return denoise(truncate(best));
     }
 
     private String truncate(String text) {
@@ -108,6 +108,36 @@ public class BrowserCaptureService {
             return text;
         }
         return text.substring(0, MAX_CONTENT_LENGTH) + "\n...（内容过长，已截断）";
+    }
+
+    private String denoise(String text) {
+        if (text == null || text.isEmpty()) return text;
+        String result = text;
+
+        // Remove code blocks (```...``` and indented code blocks)
+        result = result.replaceAll("(?s)```[^`]*?```", "");
+        result = result.replaceAll("(?m)^( {4}|\t).+$", "");
+
+        // Remove image markup: ![alt](url) and <img ...>
+        result = result.replaceAll("!\\[[^\\]]*\\]\\([^)]*\\)", "");
+        result = result.replaceAll("<img[^>]*>", "");
+
+        // Simplify markdown links: [text](url) -> text
+        result = result.replaceAll("\\[([^\\]]*+)\\]\\([^)]*\\)", "$1");
+
+        // Remove bare URLs on their own line (navigation/footer links)
+        result = result.replaceAll("(?m)^https?://\\S+$", "");
+
+        // Remove HTML tags
+        result = result.replaceAll("<[^>]+>", "");
+
+        // Remove lines that are just formatting: ---, ***, ___
+        result = result.replaceAll("(?m)^[-*_]{3,}\\s*$", "");
+
+        // Collapse consecutive blank lines to one
+        result = result.replaceAll("(?m)^\\s*\\n(\\s*\\n)+", "\n\n");
+
+        return result.trim();
     }
 
     private synchronized void ensureBrowser() {
