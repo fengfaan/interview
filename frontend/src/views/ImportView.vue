@@ -237,7 +237,6 @@
               <span v-for="kw in item.keywords" :key="kw"
                 class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{{ kw }}</span>
             </div>
-            <div class="mt-2 text-gray-600 line-clamp-3">{{ item.answer }}</div>
           </div>
         </div>
 

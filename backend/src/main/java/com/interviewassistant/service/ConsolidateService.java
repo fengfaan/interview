@@ -44,7 +44,6 @@ public class ConsolidateService {
             List<Map<String, Object>> serialized = items.stream().map(item -> {
                 Map<String, Object> map = new LinkedHashMap<>();
                 map.put("q", item.getQuestion());
-                map.put("a", item.getAnswer() != null ? item.getAnswer() : "");
                 map.put("k", item.getKeywords() != null ? item.getKeywords() : List.of());
                 return map;
             }).toList();

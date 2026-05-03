@@ -291,8 +291,9 @@ public class ObsidianService {
                     body.append("### ").append(item.getQuestion()).append("\n");
                     if (item.getKeywords() != null && !item.getKeywords().isEmpty()) {
                         body.append("**关键词**: ").append(String.join(", ", item.getKeywords())).append("\n\n");
+                    } else {
+                        body.append("\n");
                     }
-                    body.append(item.getAnswer() != null ? item.getAnswer() : "暂无参考答案").append("\n\n");
                 }
             }
 
