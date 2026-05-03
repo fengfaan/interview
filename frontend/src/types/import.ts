@@ -17,8 +17,6 @@ export interface ParsedQuestion {
 
 export interface ParseRequest {
   content: string
-  direction: string
-  level: string
 }
 
 export interface ParseResponse {
@@ -27,8 +25,6 @@ export interface ParseResponse {
 
 export interface ImportSaveRequest {
   items: ParsedQuestion[]
-  direction: string
-  level: string
   sourceUrl: string
 }
 

@@ -10,7 +10,5 @@ import java.util.List;
 public class ImportSaveRequest {
     @NotEmpty(message = "题目列表不能为空")
     private List<ParsedQuestion> items;
-    private String direction;
-    private String level;
     private String sourceUrl;
 }

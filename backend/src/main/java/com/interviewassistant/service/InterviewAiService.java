@@ -119,15 +119,9 @@ public class InterviewAiService {
         ));
     }
 
-    public List<ParseResponse.ParsedQuestion> parseWebQuestions(String direction, String level, String content) {
-        String directionLabel = direction != null ? direction : "综合";
-        String levelLabel = level != null ? InterviewLabels.questionTypeLabel(
-                InterviewLevel.valueOf(level)) : "基础";
-
-        String userMessage = promptService.render("import/import-parse.md", Map.ofEntries(
-                Map.entry("direction", directionLabel),
-                Map.entry("questionType", levelLabel),
-                Map.entry("content", content)
+    public List<ParseResponse.ParsedQuestion> parseWebQuestions(String content) {
+        String userMessage = promptService.render("import/import-parse.md", Map.of(
+                "content", content
         ));
 
         String response = aiGateway.generateText(

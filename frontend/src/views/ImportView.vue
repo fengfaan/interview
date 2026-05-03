@@ -77,32 +77,6 @@
           ></textarea>
         </div>
 
-        <!-- Direction & Level -->
-        <div class="flex gap-6 mt-5">
-          <div>
-            <label class="text-sm font-label text-on-surface-variant mb-2 block">方向</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="d in DIRECTIONS" :key="d.value"
-                @click="store.direction = d.value"
-                class="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                :class="store.direction === d.value ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'"
-              >{{ d.label }}</button>
-            </div>
-          </div>
-          <div>
-            <label class="text-sm font-label text-on-surface-variant mb-2 block">级别</label>
-            <div class="flex gap-2">
-              <button
-                v-for="l in LEVELS" :key="l.value"
-                @click="store.level = l.value"
-                class="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                :class="store.level === l.value ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'"
-              >{{ l.label }}</button>
-            </div>
-          </div>
-        </div>
-
         <!-- Parse button -->
         <div class="mt-5">
           <button
@@ -204,7 +178,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useImportStore } from '../stores/importStore'
-import { DIRECTIONS, LEVELS } from '../types/interview'
 import type { ImportSaveResult } from '../types/import'
 
 const store = useImportStore()

@@ -7,8 +7,6 @@ export const useImportStore = defineStore('import', () => {
   const inputMode = ref<'url' | 'paste'>('url')
   const url = ref('')
   const pastedContent = ref('')
-  const direction = ref('GO_BACKEND')
-  const level = ref('BASIC')
 
   const capturedTitle = ref('')
   const capturedContent = ref('')
@@ -58,8 +56,6 @@ export const useImportStore = defineStore('import', () => {
     try {
       const result = await parseQuestions({
         content: contentToParse.value,
-        direction: direction.value,
-        level: level.value,
       })
       parsedQuestions.value = result.items
     } catch (e: any) {
@@ -129,8 +125,6 @@ export const useImportStore = defineStore('import', () => {
     try {
       const results = await saveImported({
         items,
-        direction: direction.value,
-        level: level.value,
         sourceUrl: inputMode.value === 'url' ? url.value : '',
       })
       const map = new Map<number, ImportSaveResult>()
@@ -160,7 +154,7 @@ export const useImportStore = defineStore('import', () => {
   }
 
   return {
-    inputMode, url, pastedContent, direction, level,
+    inputMode, url, pastedContent,
     capturedTitle, capturedContent, isCapturing, captureError,
     parsedQuestions, isParsing, parseError,
     selectedIds, editingIndex, editDraft,
