@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { capturePage, parseQuestions, saveImported } from '../api/importApi'
+import { capturePage, streamParseQuestions, saveImported } from '../api/importApi'
 import type { ParsedQuestion, ImportSaveResult } from '../types/import'
 
 export const useImportStore = defineStore('import', () => {
@@ -16,6 +16,7 @@ export const useImportStore = defineStore('import', () => {
   const parsedQuestions = ref<ParsedQuestion[]>([])
   const isParsing = ref(false)
   const parseError = ref('')
+  const parseProgress = ref('')
 
   const selectedIds = ref<Set<number>>(new Set())
   const editingIndex = ref<number | null>(null)
@@ -49,19 +50,29 @@ export const useImportStore = defineStore('import', () => {
   async function doParse() {
     if (!contentToParse.value.trim()) return
     parseError.value = ''
+    parseProgress.value = ''
     isParsing.value = true
     parsedQuestions.value = []
     selectedIds.value = new Set()
     saveResults.value = new Map()
     try {
-      const result = await parseQuestions({
-        content: contentToParse.value,
-      })
-      parsedQuestions.value = result.items
+      await streamParseQuestions(
+        contentToParse.value,
+        (items) => {
+          parsedQuestions.value = [...parsedQuestions.value, ...items]
+        },
+        (text) => {
+          parseProgress.value = text
+        },
+        (error) => {
+          parseError.value = error
+        },
+      )
     } catch (e: any) {
       parseError.value = e.message || '解析失败'
     } finally {
       isParsing.value = false
+      parseProgress.value = ''
     }
   }
 
@@ -145,6 +156,7 @@ export const useImportStore = defineStore('import', () => {
     captureError.value = ''
     parsedQuestions.value = []
     parseError.value = ''
+    parseProgress.value = ''
     selectedIds.value = new Set()
     editingIndex.value = null
     editDraft.value = null
@@ -156,7 +168,7 @@ export const useImportStore = defineStore('import', () => {
   return {
     inputMode, url, pastedContent,
     capturedTitle, capturedContent, isCapturing, captureError,
-    parsedQuestions, isParsing, parseError,
+    parsedQuestions, isParsing, parseError, parseProgress,
     selectedIds, editingIndex, editDraft,
     isSaving, saveError, saveResults, savedCount, contentToParse,
     doCapture, doParse, toggleSelect, selectAll, deselectAll,

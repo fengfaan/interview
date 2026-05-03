@@ -15,14 +15,6 @@ export interface ParsedQuestion {
   keywords: string[]
 }
 
-export interface ParseRequest {
-  content: string
-}
-
-export interface ParseResponse {
-  items: ParsedQuestion[]
-}
-
 export interface ImportSaveRequest {
   items: ParsedQuestion[]
   sourceUrl: string

@@ -130,6 +130,46 @@ public class InterviewAiService {
         return parseImportResponse(response);
     }
 
+    public List<List<ParseResponse.ParsedQuestion>> parseWebQuestionsChunked(String content) {
+        int chunkSize = 4000;
+        List<String> chunks = splitIntoChunks(content, chunkSize);
+        List<List<ParseResponse.ParsedQuestion>> results = new ArrayList<>();
+        for (String chunk : chunks) {
+            try {
+                results.add(parseWebQuestions(chunk));
+            } catch (Exception e) {
+                log.warn("Failed to parse chunk, skipping: {}", e.getMessage());
+            }
+        }
+        return results;
+    }
+
+    private List<String> splitIntoChunks(String text, int chunkSize) {
+        if (text.length() <= chunkSize) {
+            return List.of(text);
+        }
+        List<String> chunks = new ArrayList<>();
+        int start = 0;
+        while (start < text.length()) {
+            int end = Math.min(start + chunkSize, text.length());
+            if (end < text.length()) {
+                int lastNewline = text.lastIndexOf('\n', end);
+                if (lastNewline > start) {
+                    end = lastNewline;
+                }
+            }
+            String chunk = text.substring(start, end).trim();
+            if (!chunk.isEmpty()) {
+                chunks.add(chunk);
+            }
+            start = end;
+            while (start < text.length() && text.charAt(start) == '\n') {
+                start++;
+            }
+        }
+        return chunks;
+    }
+
     private List<ParseResponse.ParsedQuestion> parseImportResponse(String response) {
         try {
             String json = com.interviewassistant.ai.util.JsonOutputUtils.extractJson(response);

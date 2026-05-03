@@ -1,11 +1,10 @@
 import type {
   CaptureRequest,
   CaptureResponse,
-  ParseRequest,
-  ParseResponse,
   ImportSaveRequest,
   ImportSaveResult,
 } from '../types/import'
+import { streamPostEvents } from './streamClient'
 
 const API_BASE = '/api/import'
 
@@ -20,15 +19,33 @@ export async function capturePage(request: CaptureRequest): Promise<CaptureRespo
   return json.data
 }
 
-export async function parseQuestions(request: ParseRequest): Promise<ParseResponse> {
-  const res = await fetch(API_BASE + '/parse', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
-  const json = await res.json()
-  if (!json.success) throw new Error(json.message || '解析失败')
-  return json.data
+export async function streamParseQuestions(
+  content: string,
+  onItems: (items: import('../types/import').ParsedQuestion[]) => void,
+  onProgress: (text: string) => void,
+  onError?: (error: string) => void,
+): Promise<void> {
+  await streamPostEvents(
+    API_BASE + '/parse/stream',
+    { content },
+    (event) => {
+      if (event.type === 'progress') {
+        onProgress(event.data)
+        return
+      }
+      if (event.type === 'items') {
+        try {
+          const parsed = JSON.parse(event.data)
+          if (parsed.items) {
+            onItems(parsed.items)
+          }
+        } catch {
+          // ignore parse errors for individual chunks
+        }
+      }
+    },
+    onError,
+  )
 }
 
 export async function saveImported(request: ImportSaveRequest): Promise<ImportSaveResult[]> {

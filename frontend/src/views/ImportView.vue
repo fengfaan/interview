@@ -86,7 +86,7 @@
           >
             <span v-if="store.isParsing" class="material-symbols-outlined animate-spin text-base">progress_activity</span>
             <span v-else class="material-symbols-outlined text-base">psychology</span>
-            {{ store.isParsing ? '解析中...' : '解析面试题' }}
+            {{ store.isParsing ? (store.parseProgress || '解析中...') : '解析面试题' }}
           </button>
         </div>
         <div v-if="store.parseError" class="bg-error-container text-on-error-container px-4 py-3 rounded-xl text-sm mt-3">
