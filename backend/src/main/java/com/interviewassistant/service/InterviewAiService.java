@@ -131,7 +131,7 @@ public class InterviewAiService {
     }
 
     public List<List<ParseResponse.ParsedQuestion>> parseWebQuestionsChunked(String content) {
-        int chunkSize = 4000;
+        int chunkSize = 12000;
         List<String> chunks = splitIntoChunks(content, chunkSize);
         List<List<ParseResponse.ParsedQuestion>> results = new ArrayList<>();
         for (String chunk : chunks) {
