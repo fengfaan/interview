@@ -118,6 +118,9 @@
         <div v-if="store.parseError" class="bg-error-container text-on-error-container px-4 py-3 rounded-xl text-sm mt-3">
           {{ store.parseError }}
         </div>
+        <div v-if="store.saveError" class="bg-error-container text-on-error-container px-4 py-3 rounded-xl text-sm mt-3">
+          {{ store.saveError }}
+        </div>
       </div>
     </div>
 
@@ -189,8 +192,8 @@
             <span v-else class="material-symbols-outlined text-base">bookmark_add</span>
             {{ store.isSaving ? '导入中...' : `导入 ${store.selectedIds.size} 题到知识库` }}
           </button>
-          <span v-if="store.saveResults.length" class="text-sm text-on-surface-variant">
-            {{ store.savedCount }} / {{ store.saveResults.length }} 题保存成功
+          <span v-if="store.saveResults.size" class="text-sm text-on-surface-variant">
+            {{ store.savedCount }} / {{ store.saveResults.size }} 题保存成功
           </span>
         </div>
       </div>
@@ -208,6 +211,6 @@ const store = useImportStore()
 const showRaw = ref(false)
 
 function getSaveResult(index: number): ImportSaveResult | undefined {
-  return store.saveResults[index]
+  return store.saveResults.get(index)
 }
 </script>

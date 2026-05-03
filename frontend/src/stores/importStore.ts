@@ -24,8 +24,9 @@ export const useImportStore = defineStore('import', () => {
   const editDraft = ref<ParsedQuestion | null>(null)
 
   const isSaving = ref(false)
-  const saveResults = ref<ImportSaveResult[]>([])
-  const savedCount = computed(() => saveResults.value.filter(r => r.success).length)
+  const saveError = ref('')
+  const saveResults = ref<Map<number, ImportSaveResult>>(new Map())
+  const savedCount = computed(() => [...saveResults.value.values()].filter(r => r.success).length)
 
   const contentToParse = computed(() =>
     inputMode.value === 'url' ? capturedContent.value : pastedContent.value
@@ -53,7 +54,7 @@ export const useImportStore = defineStore('import', () => {
     isParsing.value = true
     parsedQuestions.value = []
     selectedIds.value = new Set()
-    saveResults.value = []
+    saveResults.value = new Map()
     try {
       const result = await parseQuestions({
         content: contentToParse.value,
@@ -90,9 +91,13 @@ export const useImportStore = defineStore('import', () => {
     const updated = [...parsedQuestions.value]
     updated.splice(index, 1)
     parsedQuestions.value = updated
-    const s = new Set(selectedIds.value)
-    s.delete(index)
-    selectedIds.value = new Set([...s].filter(i => i < updated.length))
+    const s = new Set<number>()
+    for (const id of selectedIds.value) {
+      if (id === index) continue
+      if (id > index) s.add(id - 1)
+      else s.add(id)
+    }
+    selectedIds.value = s
   }
 
   function startEdit(index: number) {
@@ -114,13 +119,13 @@ export const useImportStore = defineStore('import', () => {
   }
 
   async function doSave() {
-    const items = [...selectedIds.value]
-      .sort((a, b) => a - b)
-      .map(i => parsedQuestions.value[i])
+    const selectedIndices = [...selectedIds.value].sort((a, b) => a - b)
+    const items = selectedIndices.map(i => parsedQuestions.value[i])
     if (items.length === 0) return
 
     isSaving.value = true
-    saveResults.value = []
+    saveError.value = ''
+    saveResults.value = new Map()
     try {
       const results = await saveImported({
         items,
@@ -128,9 +133,11 @@ export const useImportStore = defineStore('import', () => {
         level: level.value,
         sourceUrl: inputMode.value === 'url' ? url.value : '',
       })
-      saveResults.value = results
+      const map = new Map<number, ImportSaveResult>()
+      results.forEach((r, i) => map.set(selectedIndices[i], r))
+      saveResults.value = map
     } catch (e: any) {
-      parseError.value = e.message || '导入失败'
+      saveError.value = e.message || '导入失败'
     } finally {
       isSaving.value = false
     }
@@ -148,7 +155,8 @@ export const useImportStore = defineStore('import', () => {
     editingIndex.value = null
     editDraft.value = null
     isSaving.value = false
-    saveResults.value = []
+    saveResults.value = new Map()
+    saveError.value = ''
   }
 
   return {
@@ -156,7 +164,7 @@ export const useImportStore = defineStore('import', () => {
     capturedTitle, capturedContent, isCapturing, captureError,
     parsedQuestions, isParsing, parseError,
     selectedIds, editingIndex, editDraft,
-    isSaving, saveResults, savedCount, contentToParse,
+    isSaving, saveError, saveResults, savedCount, contentToParse,
     doCapture, doParse, toggleSelect, selectAll, deselectAll,
     removeQuestion, startEdit, cancelEdit, saveEdit, doSave, reset,
   }

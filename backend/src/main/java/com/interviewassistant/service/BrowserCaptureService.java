@@ -23,13 +23,13 @@ public class BrowserCaptureService {
     private volatile com.microsoft.playwright.Browser browser;
 
     public CaptureResponse capture(String url) {
+        ensureBrowser();
+        com.microsoft.playwright.BrowserContext context = browser.newContext(
+                new com.microsoft.playwright.Browser.NewContextOptions()
+                        .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+                                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        );
         try {
-            ensureBrowser();
-            com.microsoft.playwright.BrowserContext context = browser.newContext(
-                    new com.microsoft.playwright.Browser.NewContextOptions()
-                            .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-                                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            );
             com.microsoft.playwright.Page page = context.newPage();
 
             page.navigate(url, new com.microsoft.playwright.Page.NavigateOptions()
@@ -41,11 +41,11 @@ public class BrowserCaptureService {
             String title = page.title();
             String content = extractContent(page);
 
-            context.close();
-
             return new CaptureResponse(title, content, url, Instant.now().toString());
         } catch (Exception e) {
             throw new RuntimeException("网页抓取失败: " + e.getMessage(), e);
+        } finally {
+            context.close();
         }
     }
 
