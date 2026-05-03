@@ -73,7 +73,6 @@ public class ConsolidateService {
                         for (JsonNode itemNode : itemsNode) {
                             ParseResponse.ParsedQuestion pq = new ParseResponse.ParsedQuestion();
                             pq.setQuestion(textValue(itemNode, "q", "question"));
-                            pq.setAnswer(textValue(itemNode, "a", "answer"));
                             pq.setKeywords(listValue(itemNode, "k", "keywords"));
                             catItems.add(pq);
                         }
