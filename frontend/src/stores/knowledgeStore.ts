@@ -22,6 +22,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     { value: '系统设计', label: '系统设计' },
     { value: '数据库相关', label: '数据库相关' },
     { value: 'AI Agent 开发方向', label: 'AI Agent 开发方向' },
+    { value: '网页抓题', label: '网页抓题' },
   ]
 
   async function fetchNotes() {

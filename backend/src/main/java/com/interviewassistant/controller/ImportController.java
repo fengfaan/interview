@@ -49,7 +49,7 @@ public class ImportController {
             try {
                 CreateNoteRequest noteRequest = new CreateNoteRequest();
                 noteRequest.setTitle(item.getQuestion());
-                noteRequest.setDirection("综合");
+                noteRequest.setDirection("网页抓题");
                 noteRequest.setContent("## 题目\n\n" + item.getQuestion()
                         + "\n\n## 参考答案\n\n" + (item.getAnswer() != null ? item.getAnswer() : "暂无答案")
                         + "\n\n## 考察要点\n\n" + String.join("、", item.getKeywords()));
