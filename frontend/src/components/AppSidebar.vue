@@ -42,6 +42,16 @@
         </li>
         <li>
           <RouterLink
+            to="/import"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300"
+            :class="isActive('/import') ? 'bg-white/10 text-white font-bold' : 'text-neutral-400 hover:text-white hover:bg-white/5'"
+          >
+            <span class="material-symbols-outlined">cloud_download</span>
+            网页抓题
+          </RouterLink>
+        </li>
+        <li>
+          <RouterLink
             to="/resume"
             class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300"
             :class="isActive('/resume') ? 'bg-white/10 text-white font-bold' : 'text-neutral-400 hover:text-white hover:bg-white/5'"

@@ -23,6 +23,11 @@ const router = createRouter({
           component: () => import('../views/RapidQuestionView.vue'),
         },
         {
+          path: 'import',
+          name: 'import',
+          component: () => import('../views/ImportView.vue'),
+        },
+        {
           path: 'resume',
           name: 'resume',
           component: () => import('../views/ResumeOptimizerView.vue'),
