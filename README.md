@@ -1,6 +1,6 @@
 # Interview Assistant
 
-本地 AI 面试准备工作台。模拟面试、快速刷题、回答点评、推荐背题答案、简历匹配分析、STAR 改写、Obsidian 知识沉淀、提示词风格配置和 Prompt 调优，全部集成在一个 Web 应用里。面向个人本地使用，不需要账号系统、数据库或云服务。
+本地 AI 面试准备工作台。模拟面试、快速刷题、回答点评、推荐背题答案、简历调优（JD 匹配 / 结构体检 / 深度润色）、简历文件导入、网页题目抓取、Obsidian 知识沉淀、提示词风格配置和 Prompt 调优，全部集成在一个 Web 应用里。面向个人本地使用，不需要账号系统、数据库或云服务。
 
 前后端分离架构：
 
@@ -27,9 +27,18 @@
 
 ### 简历调优
 
-- 粘贴 JD 和简历，生成匹配度分析、技能缺口和项目表达弱点
-- 流式输出 STAR 改写示例，可应用回编辑区
-- 对过短或无效输入做基础拦截
+三个独立功能通过 Tab 切换，共享简历输入：
+
+- **JD 匹配分析**：粘贴 JD 和简历，生成匹配度评分、维度分析和优化建议，点击建议可流式生成 STAR 改写并一键应用到简历
+- **结构体检**：无需 JD，AI 从模块完整性、排序逻辑、篇幅密度三个维度诊断简历宏观布局，输出评分、红黄绿灯状态和问题列表
+- **深度润色**：粘贴某段经历描述，AI 生成技术深度版和业务结果版两个改写版本，应用 STAR 法则、强化动词，并以批注形式追问缺失的量化数据
+- **文件导入**：支持上传 PDF / DOCX 简历文件，自动提取文本填充到输入区
+
+### 网页题目抓取
+
+- 通过内置浏览器抓取或手动粘贴网页文本
+- AI 自动解析提取面试题，支持去重、合并、分类
+- 解析结果可直接导入快速刷题库
 
 ### Obsidian 知识库
 
@@ -183,7 +192,7 @@ interviewAssistant/
       components/                      # 通用组件
       layouts/                         # 页面布局
       router/                          # 路由配置
-      stores/                          # Pinia 状态（6 个 Store）
+      stores/                          # Pinia 状态（7 个 Store）
       types/                           # TypeScript 类型
       utils/                           # Markdown、LocalStorage 工具
       views/                           # 页面视图
@@ -201,7 +210,13 @@ interviewAssistant/
 | `POST` | `/api/interview/recommended-answer/stream` | SSE 流式推荐答案 |
 | `POST` | `/api/interview/deep-dive/stream` | SSE 多轮深挖追问 |
 | `POST` | `/api/resume/analyze` | JD 和简历匹配分析 |
+| `POST` | `/api/resume/structure-analysis` | 简历结构体检 |
 | `POST` | `/api/resume/rewrite/stream` | SSE STAR 改写 |
+| `POST` | `/api/resume/polish/stream` | SSE 简历深度润色 |
+| `POST` | `/api/resume/import-file` | 上传 PDF/DOCX 导入简历文本 |
+| `POST` | `/api/import/capture` | 浏览器抓取网页内容 |
+| `POST` | `/api/import/parse` | AI 解析网页文本提取面试题 |
+| `POST` | `/api/import/consolidate/stream` | SSE AI 清洗整理面试题 |
 | `GET` | `/api/knowledge/notes` | 知识库笔记列表 |
 | `GET` | `/api/knowledge/search` | 搜索知识库 |
 | `GET` | `/api/knowledge/smart-connections/search` | 向量语义检索 |
@@ -227,6 +242,7 @@ Spring Boot API (:8080)
   ├── PromptService ← prompts/*.md 模板 + 风格注入
   ├── StyleService  ← prompts/styles/*.json
   ├── DeepDiveAgent ← KnowledgeTools（知识库检索）
+  ├── ResumeFileParser（PDF/DOCX 文件解析）
   └── OnnxEmbeddingService（本地向量推理）
         │
   LLM Provider（智谱 GLM / MiMo / OpenRouter）

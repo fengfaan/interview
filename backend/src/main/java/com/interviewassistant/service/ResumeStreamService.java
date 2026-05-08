@@ -3,11 +3,14 @@ package com.interviewassistant.service;
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.common.SseUtils;
+import com.interviewassistant.dto.resume.PolishStreamRequest;
 import com.interviewassistant.dto.resume.RewriteStreamRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 @Service
@@ -42,5 +45,15 @@ public class ResumeStreamService {
                 "启动 STAR 改写失败"
         ));
         return emitter;
+    }
+
+    public void streamPolish(SseEmitter emitter, PolishStreamRequest request) {
+        String systemPrompt = promptService.load("resume/system.md");
+        String jd = StringUtils.hasText(request.getJobDescription()) ? request.getJobDescription() : "无特定要求";
+        String prompt = promptService.render("resume/deep-polish.md", 
+            Map.of("sourceText", request.getSourceText(), 
+                   "jobDescription", jd));
+
+        aiGateway.streamText(emitter, systemPrompt, prompt, "简历润色分析失败", "连接简历润色服务失败");
     }
 }

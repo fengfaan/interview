@@ -47,6 +47,10 @@ public class AiGateway {
     }
 
     public <T> JsonResult<T> generateJson(String systemPrompt, String userPrompt, Class<T> responseType) {
+        return generateJson(systemPrompt, userPrompt, responseType, syncTimeoutMs);
+    }
+
+    public <T> JsonResult<T> generateJson(String systemPrompt, String userPrompt, Class<T> responseType, long timeoutMs) {
         ensureModelAvailable();
         var converter = new BeanOutputConverter<>(responseType);
         logFinalPrompt("generateJson", systemPrompt, userPrompt + "\n\n" + converter.getFormat());
@@ -57,7 +61,7 @@ public class AiGateway {
                             .user(userPrompt + "\n\n" + converter.getFormat())
                             .call()
                             .chatResponse(),
-                    "结构化 AI 生成");
+                    "结构化 AI 生成", timeoutMs);
             try {
                 String rawText = response.getResult().getOutput().getText();
                 String json = JsonOutputUtils.extractJson(rawText);
@@ -91,6 +95,10 @@ public class AiGateway {
     }
 
     public String generateText(String userPrompt) {
+        return generateText(userPrompt, syncTimeoutMs);
+    }
+
+    public String generateText(String userPrompt, long timeoutMs) {
         ensureModelAvailable();
         logFinalPrompt("generateText", null, userPrompt);
         try {
@@ -98,7 +106,7 @@ public class AiGateway {
                             .user(userPrompt)
                             .call()
                             .content(),
-                    "文本 AI 生成");
+                    "文本 AI 生成", timeoutMs);
             recordSuccess();
             return result;
         } catch (Exception e) {
@@ -108,6 +116,10 @@ public class AiGateway {
     }
 
     public String generateText(String systemPrompt, String userPrompt) {
+        return generateText(systemPrompt, userPrompt, syncTimeoutMs);
+    }
+
+    public String generateText(String systemPrompt, String userPrompt, long timeoutMs) {
         ensureModelAvailable();
         logFinalPrompt("generateText", systemPrompt, userPrompt);
         try {
@@ -116,7 +128,7 @@ public class AiGateway {
                             .user(userPrompt)
                             .call()
                             .content(),
-                    "文本 AI 生成");
+                    "文本 AI 生成", timeoutMs);
             recordSuccess();
             return result;
         } catch (Exception e) {
@@ -148,9 +160,11 @@ public class AiGateway {
     public void streamText(SseEmitter emitter, String systemPrompt, String userPrompt,
                            String failureMessage, String startupFailureMessage) {
         ensureModelAvailable();
+        String model = aiConfig.getCurrentModel();
         logFinalPrompt("streamText", systemPrompt, userPrompt);
         try {
             AtomicBoolean closed = new AtomicBoolean(false);
+            AtomicBoolean completed = new AtomicBoolean(false);
             Disposable subscription = aiConfig.getCurrentChatClient().prompt()
                     .system(systemPrompt)
                     .user(userPrompt)
@@ -163,7 +177,8 @@ public class AiGateway {
                                 }
                             },
                             error -> {
-                                recordIfRetryable(error);
+                                completed.set(true);
+                                recordIfRetryable(error, model);
                                 if (!closed.get()) {
                                     sendStreamError(emitter, error, failureMessage);
                                 } else {
@@ -171,8 +186,9 @@ public class AiGateway {
                                 }
                             },
                             () -> {
+                                completed.set(true);
                                 if (!closed.get()) {
-                                    recordSuccess();
+                                    circuitBreaker.recordSuccess(model);
                                     SseUtils.sendDone(emitter);
                                 }
                             }
@@ -181,22 +197,32 @@ public class AiGateway {
                 closed.set(true);
                 subscription.dispose();
             };
-            emitter.onTimeout(cancelUpstream);
+            emitter.onTimeout(() -> {
+                if (!completed.get()) {
+                    log.warn("AI stream timed out for model [{}], recording failure", model);
+                    circuitBreaker.recordFailure(model);
+                }
+                cancelUpstream.run();
+            });
             emitter.onCompletion(cancelUpstream);
             emitter.onError(error -> {
                 log.debug("SSE stream closed before AI stream completed: {}", AiErrorUtils.compactMessage(error));
                 cancelUpstream.run();
             });
         } catch (Exception e) {
-            recordIfRetryable(e);
+            recordIfRetryable(e, model);
             sendStreamStartupError(emitter, e, startupFailureMessage);
         }
     }
 
     private <T> T callWithTimeout(Supplier<T> supplier, String operationName) {
+        return callWithTimeout(supplier, operationName, syncTimeoutMs);
+    }
+
+    private <T> T callWithTimeout(Supplier<T> supplier, String operationName, long timeoutMs) {
         try {
             return CompletableFuture.supplyAsync(supplier)
-                    .get(syncTimeoutMs, TimeUnit.MILLISECONDS);
+                    .get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             throw new RuntimeException(operationName + "超时，请稍后重试或切换响应更快的模型", e);
         } catch (InterruptedException e) {
@@ -276,8 +302,12 @@ public class AiGateway {
     }
 
     private void recordIfRetryable(Throwable error) {
+        recordIfRetryable(error, aiConfig.getCurrentModel());
+    }
+
+    private void recordIfRetryable(Throwable error, String model) {
         if (isRetryableError(error)) {
-            circuitBreaker.recordFailure(aiConfig.getCurrentModel());
+            circuitBreaker.recordFailure(model);
         }
     }
 

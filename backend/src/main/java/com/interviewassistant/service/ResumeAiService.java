@@ -3,6 +3,7 @@ package com.interviewassistant.service;
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.dto.resume.AnalyzeResponse;
+import com.interviewassistant.dto.resume.StructureAnalysisResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,21 @@ public class ResumeAiService {
                 "suggestionTitle", suggestionTitle != null ? suggestionTitle : "",
                 "sourceText", sourceText != null ? sourceText : ""
         ));
+    }
+
+    public AiGateway.JsonResult<StructureAnalysisResponse> analyzeStructure(String resume) {
+        if (resume == null || resume.replaceAll("\\s", "").length() < 50) {
+            throw new IllegalArgumentException("简历内容过短，请提供完整的简历");
+        }
+        if (!containsAny(resume, RESUME_SIGNALS)) {
+            throw new IllegalArgumentException("简历缺少项目、经历、技能或技术关键词，暂时无法进行有效匹配");
+        }
+
+        String systemPrompt = "请严格按照 JSON 格式输出简历结构诊断报告。";
+        String prompt = promptService.render("resume/structure-analysis.md",
+            Map.of("resume", resume));
+
+        return aiGateway.generateJson(systemPrompt, prompt, StructureAnalysisResponse.class);
     }
 
     private void validateAnalysisInput(String jobDescription, String resume) {

@@ -18,6 +18,10 @@ app:
     endpoint: ${SMART_EMBEDDING_ENDPOINT:http://127.0.0.1:8765/embed}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
   ai:
     openai:
       api-key: ${ZHIPU_API_KEY:not-configured}

@@ -32,3 +32,38 @@ export interface RewriteStreamRequest {
     sourceText: string
   }
 }
+
+export interface StructureAnalysisRequest {
+  resume: string;
+}
+
+export interface ModuleCheck {
+  name: string;
+  status: 'pass' | 'warn' | 'fail';
+  detail: string;
+}
+
+export interface StructuralIssue {
+  severity: 'critical' | 'warning' | 'info';
+  description: string;
+  suggestion: string;
+}
+
+export interface StructureAnalysisResponse {
+  structureScore: number;
+  moduleChecks: ModuleCheck[];
+  issues: StructuralIssue[];
+  summary: string;
+}
+
+export interface PolishStreamRequest {
+  sourceText: string;
+  jobDescription?: string;
+}
+
+export interface ImportFileResponse {
+  text: string;
+  fileName: string;
+  pageCount: number;
+  warning?: string;
+}
