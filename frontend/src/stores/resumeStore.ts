@@ -168,6 +168,13 @@ export const useResumeStore = defineStore('resume', () => {
     structureResult.value = null
   }
 
+  function applyStructureRewrite(quote: string, rewrite: string) {
+    if (quote && resume.value.includes(quote)) {
+      resume.value = resume.value.replace(quote, rewrite)
+      persist()
+    }
+  }
+
   function clearPolishResult() {
     polishResult.value = ''
   }
@@ -257,7 +264,7 @@ export const useResumeStore = defineStore('resume', () => {
     visibleSuggestions, inputValidationMessage, canAnalyze, canAnalyzeStructure,
     activeTab, setActiveTab, structureResult, isStructureAnalyzing, polishInput, polishSourceText, polishResult, isPolishing,
     isImporting, importError,
-    analyze, analyzeStructure, startPolish, clearStructureResult, clearPolishResult, importFile,
+    analyze, analyzeStructure, startPolish, clearStructureResult, clearPolishResult, applyStructureRewrite, importFile,
     selectSuggestion, dismissSuggestion, applyStarRewrite, persist,
   }
 })

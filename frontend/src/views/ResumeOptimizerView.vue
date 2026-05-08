@@ -221,11 +221,33 @@
                   </div>
 
                   <div>
-                     <h4 class="font-headline font-bold text-on-surface mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-sm">rule</span> 结构问题发现</h4>
-                     <div class="space-y-3">
-                         <div v-for="issue in store.structureResult.value.issues" :key="issue.description" class="text-sm p-4 border-l-4 rounded-r-lg bg-surface-container-low shadow-sm" :class="{'border-error': issue.severity==='critical', 'border-yellow-500': issue.severity==='warning', 'border-secondary': issue.severity==='info'}">
-                             <p class="font-medium text-on-surface">{{ issue.description }}</p>
-                             <p class="text-on-surface-variant mt-2 text-xs bg-surface-container px-2 py-1 rounded inline-block">💡 建议: {{ issue.suggestion }}</p>
+                     <h4 class="font-headline font-bold text-on-surface mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-sm">rule</span> 逐段诊断</h4>
+                     <div class="space-y-4">
+                         <div v-for="(issue, idx) in store.structureResult.value.issues" :key="idx" class="border-l-4 rounded-r-lg bg-surface-container-low shadow-sm overflow-hidden" :class="{'border-error': issue.severity==='critical', 'border-yellow-500': issue.severity==='warning', 'border-secondary': issue.severity==='info'}">
+                             <!-- Header: location + action badge -->
+                             <div class="flex items-center gap-2 px-4 py-2 bg-surface-container">
+                                 <span class="text-xs font-bold px-2 py-0.5 rounded" :class="{'bg-error-container text-on-error-container': issue.severity==='critical', 'bg-yellow-100 text-yellow-800': issue.severity==='warning', 'bg-surface-container-high text-on-surface-variant': issue.severity==='info'}">{{ issue.severity === 'critical' ? '严重' : (issue.severity === 'warning' ? '警告' : '建议') }}</span>
+                                 <span class="text-xs text-on-surface-variant">{{ issue.location }}</span>
+                                 <span v-if="issue.action" class="ml-auto text-xs font-bold px-2 py-0.5 rounded bg-primary-container text-on-primary-container">{{ issue.action }}</span>
+                             </div>
+                             <!-- Quote from resume -->
+                             <div class="px-4 py-2 text-xs text-on-surface-variant bg-surface-container/50 border-y border-outline-variant/10">
+                                 <span class="text-on-surface-variant/60">原文：</span>
+                                 <span class="line-through decoration-error/40">{{ issue.quote }}</span>
+                             </div>
+                             <!-- Problem + suggestion -->
+                             <div class="px-4 py-3">
+                                 <p class="text-sm font-medium text-on-surface">{{ issue.problem }}</p>
+                                 <p class="text-sm text-on-surface-variant mt-1">{{ issue.suggestion }}</p>
+                             </div>
+                             <!-- Rewrite result -->
+                             <div v-if="issue.rewrite" class="px-4 py-3 border-t border-outline-variant/10">
+                                 <div class="flex items-center gap-2 mb-1">
+                                     <span class="text-xs text-secondary font-bold">改写参考</span>
+                                     <button @click="store.applyStructureRewrite(issue.quote, issue.rewrite)" class="text-xs text-primary hover:underline ml-auto">应用到简历</button>
+                                 </div>
+                                 <div class="text-sm text-secondary bg-secondary/5 p-3 rounded-lg whitespace-pre-line leading-relaxed">{{ issue.rewrite }}</div>
+                             </div>
                          </div>
                      </div>
                   </div>
@@ -234,7 +256,7 @@
                 <div class="text-center text-on-surface-variant">
                   <span class="material-symbols-outlined text-5xl mb-3 opacity-50 block">monitor_heart</span>
                   <p class="font-headline font-bold">在左侧填写简历，点击顶部「开始体检」</p>
-                  <p class="text-sm mt-2">AI 将对简历宏观结构进行诊断，不评价具体内容</p>
+                  <p class="text-sm mt-2">AI 将逐段诊断简历问题，给出具体修改方案</p>
                 </div>
               </div>
             </div>

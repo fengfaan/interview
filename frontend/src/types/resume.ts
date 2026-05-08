@@ -43,16 +43,20 @@ export interface ModuleCheck {
   detail: string;
 }
 
-export interface StructuralIssue {
+export interface ParagraphIssue {
   severity: 'critical' | 'warning' | 'info';
-  description: string;
+  quote: string;
+  location: string;
+  problem: string;
+  action: string;
   suggestion: string;
+  rewrite: string | null;
 }
 
 export interface StructureAnalysisResponse {
   structureScore: number;
   moduleChecks: ModuleCheck[];
-  issues: StructuralIssue[];
+  issues: ParagraphIssue[];
   summary: string;
 }
 
