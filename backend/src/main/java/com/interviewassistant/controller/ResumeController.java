@@ -3,6 +3,8 @@ package com.interviewassistant.controller;
 import com.interviewassistant.common.ApiResponse;
 import com.interviewassistant.dto.resume.AnalyzeRequest;
 import com.interviewassistant.dto.resume.AnalyzeResponse;
+import com.interviewassistant.dto.resume.HealthCheckupRequest;
+import com.interviewassistant.dto.resume.HealthCheckupResponse;
 import com.interviewassistant.dto.resume.ImportFileResponse;
 import com.interviewassistant.dto.resume.PolishStreamRequest;
 import com.interviewassistant.dto.resume.RewriteStreamRequest;
@@ -43,6 +45,13 @@ public class ResumeController {
     @PostMapping("/structure-analysis")
     public ApiResponse<AiGateway.JsonResult<StructureAnalysisResponse>> analyzeStructure(@Valid @RequestBody StructureAnalysisRequest request) {
         AiGateway.JsonResult<StructureAnalysisResponse> result = resumeService.analyzeStructure(request.getResume());
+        return ApiResponse.ok(result);
+    }
+
+    @PostMapping("/health-checkup")
+    public ApiResponse<AiGateway.JsonResult<HealthCheckupResponse>> healthCheckup(@Valid @RequestBody HealthCheckupRequest request) {
+        AiGateway.JsonResult<HealthCheckupResponse> result = resumeService.healthCheckup(
+                request.getResume(), request.getJobDescription());
         return ApiResponse.ok(result);
     }
 

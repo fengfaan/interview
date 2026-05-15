@@ -5,7 +5,9 @@ import type {
   StructureAnalysisRequest,
   StructureAnalysisResponse,
   PolishStreamRequest,
-  ImportFileResponse
+  ImportFileResponse,
+  HealthCheckupRequest,
+  HealthCheckupResponse
 } from '../types/resume'
 import { streamPost } from './streamClient'
 
@@ -58,5 +60,16 @@ export async function importFile(file: File): Promise<ImportFileResponse> {
   })
   const json = await res.json()
   if (!json.success) throw new Error(json.message || '文件解析失败')
+  return json.data
+}
+
+export async function healthCheckup(request: HealthCheckupRequest): Promise<{ value: HealthCheckupResponse, actualModel: string }> {
+  const res = await fetch(API_BASE + '/health-checkup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || '体检失败')
   return json.data
 }

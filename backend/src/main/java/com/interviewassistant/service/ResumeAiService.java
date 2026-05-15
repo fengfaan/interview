@@ -3,6 +3,7 @@ package com.interviewassistant.service;
 import com.interviewassistant.ai.gateway.AiGateway;
 import com.interviewassistant.ai.prompt.PromptService;
 import com.interviewassistant.dto.resume.AnalyzeResponse;
+import com.interviewassistant.dto.resume.HealthCheckupResponse;
 import com.interviewassistant.dto.resume.StructureAnalysisResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,35 @@ public class ResumeAiService {
                 "suggestionTitle", suggestionTitle != null ? suggestionTitle : "",
                 "sourceText", sourceText != null ? sourceText : ""
         ));
+    }
+
+    public AiGateway.JsonResult<HealthCheckupResponse> healthCheckup(String resume, String jobDescription) {
+        if (resume == null || resume.replaceAll("\\s", "").length() < MIN_RESUME_MEANINGFUL_CHARS) {
+            throw new IllegalArgumentException("简历内容过短，请提供完整的简历");
+        }
+        if (!containsAny(resume, RESUME_SIGNALS)) {
+            throw new IllegalArgumentException("简历缺少项目、经历、技能或技术关键词，暂时无法进行有效分析");
+        }
+
+        boolean hasJd = jobDescription != null && !jobDescription.isBlank();
+        String jdSection = hasJd ? "## 目标职位 JD\n" + jobDescription : "";
+        String atsSection = hasJd
+                ? "## 第1关：ATS过筛率（0-100）\n评估标准：\n"
+                  + "- 从JD中提取核心技术关键词（框架、语言、工具、平台），检查是否在简历中**原样出现**\n"
+                  + "- 统计关键词覆盖率：出现数/总数\n"
+                  + "- Section标题是否标准（工作经历/项目经历/教育背景/专业技能/自我评价等）\n"
+                  + "- 日期格式是否统一可解析（如 2022.03-2024.05 或 2022年3月-2024年5月）\n"
+                  + "- 是否有清晰的section划分结构"
+                : "## 第1关：ATS过筛率\n未提供JD，此维度跳过。输出：{ \"score\": null, \"detail\": \"未提供JD，ATS关键词匹配已跳过\", \"skipped\": true }";
+
+        String systemPrompt = "请严格按照 JSON 格式输出简历体检报告。";
+        String prompt = promptService.render("resume/health-checkup.md", Map.of(
+                "resume", resume,
+                "jobDescriptionSection", jdSection,
+                "atsSection", atsSection
+        ));
+
+        return aiGateway.generateJson(systemPrompt, prompt, HealthCheckupResponse.class);
     }
 
     public AiGateway.JsonResult<StructureAnalysisResponse> analyzeStructure(String resume) {

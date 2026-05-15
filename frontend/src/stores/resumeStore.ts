@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AnalyzeResponse, Suggestion, StructureAnalysisResponse } from '../types/resume'
+import type { AnalyzeResponse, Suggestion, StructureAnalysisResponse, HealthCheckupResponse, CheckupAnnotation } from '../types/resume'
 import * as api from '../api/resumeApi'
 import { loadState, saveState } from '../utils/localStorage'
 
@@ -35,9 +35,9 @@ export const useResumeStore = defineStore('resume', () => {
   const dismissedSuggestions = ref<Set<string>>(new Set())
 
   // new features
-  const activeTab = ref<'match' | 'structure' | 'polish'>('match')
+  const activeTab = ref<'match' | 'structure' | 'polish' | 'checkup'>('match')
 
-  function setActiveTab(tab: 'match' | 'structure' | 'polish') {
+  function setActiveTab(tab: 'match' | 'structure' | 'polish' | 'checkup') {
     activeTab.value = tab
     error.value = ''
   }
@@ -51,6 +51,11 @@ export const useResumeStore = defineStore('resume', () => {
   const isPolishing = ref(false)
   const isImporting = ref(false)
   const importError = ref('')
+
+  // health checkup
+  const healthCheckupResult = ref<{ value: HealthCheckupResponse, actualModel: string } | null>(null)
+  const isHealthChecking = ref(false)
+  const expandedFunnelLayers = ref<Set<string>>(new Set(['ats']))
 
   const visibleSuggestions = computed(() => {
     if (!analysisResult.value) return []
@@ -76,6 +81,10 @@ export const useResumeStore = defineStore('resume', () => {
 
   const canAnalyze = computed(() => !inputValidationMessage.value && !isLoading.value)
   const canAnalyzeStructure = computed(() => !inputValidationMessage.value && !isStructureAnalyzing.value)
+  const canHealthCheck = computed(() => {
+    const cv = resume.value.trim()
+    return meaningfulLength(cv) >= MIN_RESUME_MEANINGFUL_CHARS && containsAny(cv, RESUME_SIGNALS) && !isHealthChecking.value
+  })
 
   function restore() {
     const saved = loadState(STORAGE_KEY)
@@ -86,6 +95,7 @@ export const useResumeStore = defineStore('resume', () => {
       dismissedSuggestions.value = new Set(saved.dismissedSuggestions ?? [])
       activeTab.value = saved.activeTab ?? 'match'
       polishInput.value = saved.polishInput ?? ''
+      healthCheckupResult.value = saved.healthCheckupResult ?? null
     }
   }
 
@@ -97,6 +107,7 @@ export const useResumeStore = defineStore('resume', () => {
       dismissedSuggestions: [...dismissedSuggestions.value],
       activeTab: activeTab.value,
       polishInput: polishInput.value,
+      healthCheckupResult: healthCheckupResult.value,
     })
   }
 
@@ -177,6 +188,48 @@ export const useResumeStore = defineStore('resume', () => {
 
   function clearPolishResult() {
     polishResult.value = ''
+  }
+
+  async function healthCheckupAction() {
+    error.value = ''
+    const cv = resume.value.trim()
+    if (meaningfulLength(cv) < MIN_RESUME_MEANINGFUL_CHARS) {
+      error.value = '简历内容过短，请提供完整的简历'
+      return
+    }
+    if (!containsAny(cv, RESUME_SIGNALS)) {
+      error.value = '简历缺少项目、经历、技能或技术关键词'
+      return
+    }
+    isHealthChecking.value = true
+    healthCheckupResult.value = null
+    try {
+      const res = await api.healthCheckup({
+        resume: cv,
+        jobDescription: jobDescription.value || undefined,
+      })
+      healthCheckupResult.value = res
+      expandedFunnelLayers.value = new Set(['ats'])
+      persist()
+    } catch (e: any) {
+      error.value = e.message || '体检失败'
+    } finally {
+      isHealthChecking.value = false
+    }
+  }
+
+  function applyAnnotationRewrite(annotation: CheckupAnnotation) {
+    if (annotation.rewrite && annotation.quote && resume.value.includes(annotation.quote)) {
+      resume.value = resume.value.replace(annotation.quote, annotation.rewrite)
+      persist()
+    }
+  }
+
+  function toggleFunnelLayer(layer: string) {
+    const s = new Set(expandedFunnelLayers.value)
+    if (s.has(layer)) s.delete(layer)
+    else s.add(layer)
+    expandedFunnelLayers.value = s
   }
 
   async function importFile(file: File) {
@@ -264,7 +317,9 @@ export const useResumeStore = defineStore('resume', () => {
     visibleSuggestions, inputValidationMessage, canAnalyze, canAnalyzeStructure,
     activeTab, setActiveTab, structureResult, isStructureAnalyzing, polishInput, polishSourceText, polishResult, isPolishing,
     isImporting, importError,
+    healthCheckupResult, isHealthChecking, canHealthCheck, expandedFunnelLayers,
     analyze, analyzeStructure, startPolish, clearStructureResult, clearPolishResult, applyStructureRewrite, importFile,
     selectSuggestion, dismissSuggestion, applyStarRewrite, persist,
+    healthCheckupAction, applyAnnotationRewrite, toggleFunnelLayer,
   }
 })

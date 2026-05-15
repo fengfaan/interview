@@ -71,3 +71,41 @@ export interface ImportFileResponse {
   pageCount: number;
   warning?: string;
 }
+
+// Health Checkup types
+
+export interface HealthCheckupRequest {
+  resume: string
+  jobDescription?: string
+}
+
+export interface FunnelScore {
+  score: number | null
+  detail: string
+  skipped: boolean
+}
+
+export interface Finding {
+  category: string
+  title: string
+  detail: string
+}
+
+export interface CheckupAnnotation {
+  quote: string
+  location: string
+  category: 'weak-verb' | 'no-metric' | 'vague' | 'redundant' | 'missing-result' | 'strong'
+  problem: string
+  suggestion: string
+  rewrite: string | null
+}
+
+export interface HealthCheckupResponse {
+  overallScore: number
+  funnelScores: Record<string, FunnelScore>
+  redFlags: Finding[]
+  warnings: Finding[]
+  highlights: Finding[]
+  annotations: CheckupAnnotation[]
+  summary: string
+}
